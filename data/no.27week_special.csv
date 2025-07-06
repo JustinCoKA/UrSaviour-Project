@@ -1,0 +1,31 @@
+﻿product_id,product_name,category_name,description,store_name,base_price,default_image_url,discount_type,final_price
+P0040,Donut,Fruit,Standard pack of donut,Justin Groceries,5.87,/images/p/P0040.jpg,Half Price,2.94
+P0096,Bread,Frozen,Standard pack of bread,Austin Fresh,1.2,/images/p/P0096.jpg,30% OFF,0.84
+P0081,Tomato,Pantry,Standard pack of tomato,Aadarsh Deals,10.66,/images/p/P0081.jpg,10% OFF,9.59
+P0020,Yogurt Drink,Frozen,Standard pack of yogurt drink,Justin Groceries,7.26,/images/p/P0020.jpg,10% OFF,6.53
+P0001,Mineral Water,Frozen,Standard pack of mineral water,Mio Mart,11.99,/images/p/P0001.jpg,Half Price,6.0
+P0080,Lamb Leg,Fruit,Standard pack of lamb leg,Austin Fresh,10.1,/images/p/P0080.jpg,10% OFF,9.09
+P0100,Croissant,Pantry,Standard pack of croissant,Austin Fresh,5.35,/images/p/P0100.jpg,30% OFF,3.74
+P0067,Nuts,Bakery,Standard pack of nuts,Austin Fresh,1.23,/images/p/P0067.jpg,30% OFF,0.86
+P0020,Yogurt Drink,Frozen,Standard pack of yogurt drink,Aadarsh Deals,7.62,/images/p/P0020.jpg,Big deal,2.29
+P0046,Cookies,Snacks,Standard pack of cookies,Mio Mart,4.67,/images/p/P0046.jpg,Half Price,2.33
+P0098,Chocolate Biscuit,Meat,Standard pack of chocolate biscuit,Aadarsh Deals,13.95,/images/p/P0098.jpg,10% OFF,12.55
+P0011,Soy Sauce,Beverages,Standard pack of soy sauce,Justin Groceries,13.32,/images/p/P0011.jpg,10% OFF,11.99
+P0028,Bagel,Health,Standard pack of bagel,Aadarsh Deals,9.05,/images/p/P0028.jpg,30% OFF,6.33
+P0066,Pita,Snacks,Standard pack of pita,Justin Groceries,6.84,/images/p/P0066.jpg,Half Price,3.42
+P0097,Orange Juice,Bakery,Standard pack of orange juice,Mio Mart,14.92,/images/p/P0097.jpg,Half Price,7.46
+P0094,Vinegar,Household,Standard pack of vinegar,Mio Mart,12.07,/images/p/P0094.jpg,10% OFF,10.86
+P0053,Canned Corn,Health,Standard pack of canned corn,Justin Groceries,3.58,/images/p/P0053.jpg,Half Price,1.79
+P0097,Orange Juice,Bakery,Standard pack of orange juice,Aadarsh Deals,14.86,/images/p/P0097.jpg,10% OFF,13.37
+P0052,Rice Cracker,Pantry,Standard pack of rice cracker,Aadarsh Deals,4.49,/images/p/P0052.jpg,Half Price,2.25
+P0013,Smoothie,Fruit,Standard pack of smoothie,Austin Fresh,4.39,/images/p/P0013.jpg,Big deal,1.32
+P0074,Flour,Pantry,Standard pack of flour,Aadarsh Deals,13.19,/images/p/P0074.jpg,30% OFF,9.23
+P0069,Salt,Beverages,Standard pack of salt,Justin Groceries,5.82,/images/p/P0069.jpg,30% OFF,4.07
+P0016,Chicken Thigh,Beverages,Standard pack of chicken thigh,Mio Mart,7.9,/images/p/P0016.jpg,10% OFF,7.11
+P0057,Tissue,Snacks,Standard pack of tissue,Aadarsh Deals,9.93,/images/p/P0057.jpg,Half Price,4.96
+P0083,Iced Tea,Health,Standard pack of iced tea,Austin Fresh,9.95,/images/p/P0083.jpg,Half Price,4.97
+P0070,Toilet Paper,Household,Standard pack of toilet paper,Aadarsh Deals,1.49,/images/p/P0070.jpg,10% OFF,1.34
+P0043,Banana,Pantry,Standard pack of banana,Mio Mart,2.02,/images/p/P0043.jpg,Big deal,0.61
+P0027,Frozen Pizza,Fruit,Standard pack of frozen pizza,Mio Mart,10.53,/images/p/P0027.jpg,30% OFF,7.37
+P0004,Trash Bag,Fruit,Standard pack of trash bag,Justin Groceries,1.73,/images/p/P0004.jpg,30% OFF,1.21
+P0040,Donut,Fruit,Standard pack of donut,Austin Fresh,5.51,/images/p/P0040.jpg,30% OFF,3.86
