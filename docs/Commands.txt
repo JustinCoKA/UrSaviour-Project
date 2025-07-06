@@ -1,0 +1,13 @@
+// Using commands in terminal
+
+// To connect GitHub and your local folder
+git clone https://github.com/JustinCoKA/UrSaviour-Project.git
+
+// To get newest data from GitHub
+git pull origin main
+
+// To upload your whole local data to GuitHub
+git add.
+
+// To upload a specific file to GitHub (example)
+git add frontend/default.comf
