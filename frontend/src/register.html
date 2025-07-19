@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - UrSaviour</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Global site header -->
+  <div data-include="components/header.html"></div>
+
+  <!-- Main content -->
+  <main>
+    <div class="auth-container">
+      <button class="close-btn">×</button>
+      <h1>Sign Up</h1>
+
+      <p><a href="login.html">Already a member? <u>Log In</u></a></p>
+
+      <form action="/register" method="POST" class="auth-form">
+        <label for="first_name">First Name *</label>
+        <input type="text" id="first_name" name="first_name" placeholder="e.g. John" required />
+
+        <label for="last_name">Last Name *</label>
+        <input type="text" id="last_name" name="last_name" placeholder="e.g. Doe" required />
+
+        <label for="email">Email *</label>
+        <input type="email" id="email" name="email" placeholder="e.g. yourname@example.com" required />
+
+        <label for="password">Password *</label>
+        <input type="password" id="password" name="password" placeholder="e.g. P@ssw0rd!" required />
+
+        <!-- Password strength bar -->
+        <div class="password-strength">
+          <div id="strength-bar"></div>
+          <span id="strength-text"></span>
+        </div>
+
+        <label for="confirm_password">Confirm Password *</label>
+        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required />
+
+        <button type="submit">Sign up</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Global site footer -->
+  <div data-include="components/footer.html"></div>
+
+  <!-- Chat Assistant -->
+  <div data-include="components/chat.html"></div>
+
+  <!-- JavaScript -->
+  <script src="js/include.js" defer></script>
+  <script src="js/chat-toggle.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.querySelector(".auth-form");
+  const password = form.querySelector("input[name='password']");
+  const confirm = form.querySelector("input[name='confirm_password']");
+  const bar = document.getElementById("strength-bar");
+  const label = document.getElementById("strength-text");
+
+  function checkStrength(pw) {
+    let strength = 0;
+    if (pw.length >= 8) strength++;
+    if (/[A-Z]/.test(pw)) strength++;
+    if (/[a-z]/.test(pw)) strength++;
+    if (/\d/.test(pw)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) strength++;
+    return strength;
+  }
+
+  function updateStrengthBar(pw) {
+    const score = checkStrength(pw);
+    const percent = (score / 5) * 100;
+    bar.style.width = percent + "%";
+    if (score <= 2) {
+      bar.style.backgroundColor = "#e57373"; // weak (red)
+      label.textContent = "Weak";
+    } else if (score === 3 || score === 4) {
+      bar.style.backgroundColor = "#ffb74d"; // medium (orange)
+      label.textContent = "Medium";
+    } else {
+      bar.style.backgroundColor = "#81c784"; // strong (green)
+      label.textContent = "Strong";
+    }
+  }
+
+  password.addEventListener("input", function () {
+    updateStrengthBar(password.value);
+  });
+
+  form.addEventListener("submit", function (e) {
+    const pw = password.value;
+    const confirmPw = confirm.value;
+    const errors = [];
+    if (pw.length < 8) {
+      errors.push("Password must be at least 8 characters long.");
+    }
+    if (!/\d/.test(pw)) {
+      errors.push("Password must include at least one number.");
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
+      errors.push("Password must include at least one symbol.");
+    }
+    if (pw !== confirmPw) {
+      errors.push("Passwords do not match.");
+    }
+    if (errors.length > 0) {
+      e.preventDefault();
+      alert(errors.join("\n"));
+    }
+  });
+});
+</script>
+</body>
+</html>
