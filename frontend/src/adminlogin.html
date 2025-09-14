@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - UrSaviour</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Global site header (reused across all pages) -->
+  <div data-include="components/header.html"></div>
+
+  <!-- 🔸 Main contents -->
+  <main>
+    <!-- Content goes here -->
+    <div class="auth-container">
+    <button class="close-btn">×</button>
+    <h1>Admin Log In</h1>
+
+    <form action="/login" method="POST" class="auth-form">
+      <label for="Employee-ID">Employee ID *</label>
+      <input type="Employee ID" id="Employee-ID" name="Employee-ID" placeholder="Employee ID" required>
+
+      <label for="password">Password *</label>
+      <input type="password" id="password" name="password" placeholder="Password" required>
+      <button type="submit">Log In</button>
+    </form>
+  </div>
+  </main>
+
+
+  <!-- Global site footer (reused across all pages) -->
+  <div data-include="components/footer.html"></div>
+
+  <!-- Chat Assistant Button & Window -->
+  <div data-include="components/chat.html"></div>
+
+  <!-- JavaScript includes -->
+  <script src="js/include.js" defer></script>
+  <script src="js/chat-toggle.js" defer></script>
+  <script src="js/main.js" defer></script>
+</body>
+</html>
