@@ -217,27 +217,33 @@ main {
 .footer-container {
   max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
+  padding: 0 1rem;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center; 
 }
 
 .footer-column {
-  flex: 1 1 200px;
+  flex: 1;
 }
 
-.footer-links {
-  list-style: none;
-  padding: 0;
+.footer-column:nth-child(1) {
+  text-align: left;
+}
+.footer-column:nth-child(2) {
+  text-align: center;
+}
+.footer-column:nth-child(3) {
+  text-align: right;
+}
+
+.footer-column p, .footer-column ul {
   margin: 0;
 }
 
-.footer-links li {
-  margin: 0.5rem 0;
+/* 링크 스타일 */
+.footer-links {
+  list-style: none;
+  padding: 0;
 }
 
 .footer-links a,
@@ -250,12 +256,6 @@ main {
 .footer-links a:hover,
 .back-to-top a:hover {
   color: #90caf9;
-}
-
-.back-to-top {
-  text-align: center;
-  width: 100%;
-  margin-top: 2rem;
 }
 
 /* ==========================================================================
