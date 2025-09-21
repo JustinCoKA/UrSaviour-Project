@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrSaviour - Product</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/auth.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
+
+<body>
+  <!-- Global site header (reused across all pages) -->
+  <div data-include="components/header.html"></div>
+
+<main class="product-page">
+    
+    
+        <div id="searching-bar" class="searching-bar" >
+            <input type="text" placeholder="Search">
+        </div>
+
+    <div id="filtering-bar" class="product-container">
+        <div class="Accordion-filterby">
+            <h2 class="filter-title" style="color: #004d40;" > Filter by </h2>
+            <button class="ac-Catergories">Catergories</button>
+            <div class="panel">
+                <button class="valuesButton" onclick="filterProduct('All')">Show All</button>
+                <button class="valuesButton" onclick="filterProduct('Vegetables')">Vegetables</button>
+                <button class="valuesButton" onclick="filterProduct('Frozen food')">Frozen food</button>
+                <button class="valuesButton" onclick="filterProduct('Canned food')">Canned food</button>
+            </div>
+
+            <button class="ac-Catergories">Special Offers </button>
+            <div class="panel">
+                <button class="valuesButton" onclick="filterProduct('Discount 10%')">Discount 10%</button>
+                <button class="valuesButton" onclick="filterProduct('Discount 20%')">Discount 20%</button>
+                <button class="valuesButton" onclick="filterProduct('Discount 30%')">Discount 30%</button>
+                <button class="valuesButton" onclick="filterProduct('Special Deals')">Special Deals</button>
+            </div>
+
+            <button class="ac-Catergories">Range Price</button>
+            <div class="panel">
+                <div class ="Range-Price">
+                    <input type="range" id="priceRange" class="pricerange-style" min="0" max="100" value="25">
+                    <p>Selected Price: $<span id="currentPrice">25</span></p>
+                </div>
+            </div>
+        </div>
+    
+        
+        <div id="product-gallery" class="product-gallery">
+            <!--Product Galllery - JS fills in it-->
+        </div>
+        
+    </div>
+        <button id="more-here">More here</button>
+</main>
+
+    <!--Website Footer-->
+  <div data-include="components/footer.html"></div>
+
+    <!-- Chat Assistant Button & Window -->
+  <div data-include="components/chat.html"></div>
+    
+    <!--All the Source-->
+  <script src="js/include.js" defer></script>
+  <script src="js/chat-toggle.js" defer></script>
+  <script src="js/main.js" defer></script> 
+  <script src="js/product_page.js" defer></script>
+
+</body>
+</html>
