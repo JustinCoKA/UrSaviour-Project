@@ -7,6 +7,7 @@
  *    2) Replace that store's price with final price and keep original_price (strike-through)
  * - 4-column grid, filters open by default, collapsible by clicking section titles
  * - Wide search bar
+ * - Watchlist: like button per product (saved in localStorage for now)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1358,12 +1359,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ;
 
-  // ===== 1) State =====
-  const PER_PAGE = 20;        // still paginated 20 per view; grid is 4 columns so 5 rows per page
+ // ===== 1) State =====
+  const PER_PAGE = 20;  // 4 columns × 5 rows
   let currentPage = 1;
   let activeCategory = "all";
   let activeOffer = "all";
   let keyword = "";
+
+  // Watchlist (saved in localStorage for persistence)
+  let WATCHLIST = JSON.parse(localStorage.getItem("watchlist") || "[]");
 
   // ===== 2) DOM =====
   const gallery = document.getElementById("product-gallery");
@@ -1389,8 +1393,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const safeImg = (src, seed) =>
     `<img src="${src}" alt="" loading="lazy" onerror="this.onerror=null;this.src='https://picsum.photos/seed/${encodeURIComponent(seed)}/300/200';"/>`;
 
+  // Toggle watchlist
+  const toggleLike = productId => {
+    const index = WATCHLIST.indexOf(productId);
+    if (index === -1) {
+      WATCHLIST.push(productId);
+    } else {
+      WATCHLIST.splice(index, 1);
+    }
+    localStorage.setItem("watchlist", JSON.stringify(WATCHLIST));
+    render(); // re-render to update button state
+  };
+
+  // Product card HTML
   const cardHTML = item => {
     const badge = item.special ? `<span class="badge" data-type="${item.special.type}">${item.special.type}</span>` : "";
+    const liked = WATCHLIST.includes(item.id);
+    const likeBtn = `<span class="like-btn ${liked ? "active" : ""}" onclick="toggleLike('${item.id}')">❤</span>`;
+
     const rows = item.stores.map(s => {
       const hasOriginal = typeof s.original_price === "number" && s.original_price > s.price;
       const right = hasOriginal
@@ -1398,12 +1418,15 @@ document.addEventListener("DOMContentLoaded", () => {
         : `<span>$${Number(s.price).toFixed(2)}</span>`;
       return `<div><span>${s.brand}</span>${right}</div>`;
     }).join("");
+
     const desc = item.description ? `<div class="desc">${item.description}</div>` : "";
+
     return `
       <article class="card">
         <div class="media">
           ${badge}
           ${safeImg(item.image || "", item.id)}
+          ${likeBtn}
         </div>
         <h3>${item.name}</h3>
         ${desc}
@@ -1437,7 +1460,6 @@ document.addEventListener("DOMContentLoaded", () => {
     makeBtn("«", () => { currentPage = 1; render(); }, { disabled: currentPage === 1 });
     makeBtn("‹", () => { currentPage = Math.max(1, currentPage - 1); render(); }, { disabled: currentPage === 1 });
 
-    // show all page numbers (100 items → 5 pages of 20)
     for (let p = 1; p <= totalPages; p++) {
       makeBtn(String(p), () => { currentPage = p; render(); }, { active: p === currentPage });
     }
@@ -1471,4 +1493,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ===== 5) Initial render =====
   render();
+
+  // Expose toggleLike to global scope (needed for onclick in HTML)
+  window.toggleLike = toggleLike;
 });

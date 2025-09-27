@@ -470,3 +470,17 @@ main {
   .filter-panel{ width:100%; }
   .product-gallery{ grid-template-columns:repeat(2,1fr); }
 }
+
+/* Like button on product card */
+.like-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  color: #ccc;
+  transition: color 0.2s;
+}
+.like-btn.active {
+  color: #e63946; /* red when liked */
+}
