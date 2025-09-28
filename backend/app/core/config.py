@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         if self.DATABASE_URL:
             return self.DATABASE_URL
         pwd = self.DB_PASSWORD.get_secret_value()
-        return f\"{self.DB_SCHEME}://{self.DB_USER}:{pwd}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4\"
+        return f"{self.DB_SCHEME}://{self.DB_USER}:{pwd}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4"
 
     # --- JWT ---
     SECRET_KEY: SecretStr = SecretStr("change-me")
