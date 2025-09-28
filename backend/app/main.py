@@ -1,26 +1,26 @@
+# backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1.router import api_router
+# from app.api import auth, products, watchlist, admin, etl  # to be added later
 
-app = FastAPI(
-    title="UrSaviour API",
-    description="Grocery Discount Assistant API",
-    version="1.0.0"
-)
+# Create FastAPI app
+app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
-# Configure CORS
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API router
-app.include_router(api_router, prefix="/api/v1")
+# Include routers (to be added in Phase 3~)
+# app.include_router(auth.router, prefix=settings.API_PREFIX)
+# ...
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to UrSaviour API"}
+# Health check endpoint
+@app.get("/health")
+def health():
+    return {"status": "ok"}

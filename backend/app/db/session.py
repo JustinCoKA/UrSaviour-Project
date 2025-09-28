@@ -1,20 +1,21 @@
+# backend/app/db/session.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
+from app.core.config import settings
 
-# Use environment variable for DB connection (Docker compatible)
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://ursaviouruser:securepassword@db:3306/ursaviour")
+# Build DB connection URL
+DATABASE_URL = settings.database_url()
+# Create engine
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# Create session factory
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True
-)
+# Common dependency for routers
+from app.db.session import SessionLocal
+from sqlalchemy.orm import Session
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Dependency for FastAPI
 def get_db():
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:
