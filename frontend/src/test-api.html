@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - UrSaviour</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .product { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .stores { margin-top: 10px; }
+        .store { display: inline-block; margin-right: 15px; padding: 5px 10px; background: #f0f0f0; border-radius: 3px; }
+        .loading { text-align: center; padding: 50px; color: #666; }
+        .error { text-align: center; padding: 50px; color: #d32f2f; background: #ffebee; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>API Test - Products from Backend</h1>
+    <div id="content">
+        <div class="loading">Loading products from API...</div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const content = document.getElementById('content');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/products/products?limit=10');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const products = await response.json();
+                console.log('API Response:', products);
+                
+                if (products.length === 0) {
+                    content.innerHTML = '<div class="error">No products found</div>';
+                    return;
+                }
+                
+                content.innerHTML = products.map(product => `
+                    <div class="product">
+                        <h3>${product.name} (${product.id})</h3>
+                        <p><strong>Category:</strong> ${product.category}</p>
+                        <p><strong>Description:</strong> ${product.description}</p>
+                        <p><strong>Image:</strong> ${product.image}</p>
+                        <div class="stores">
+                            <strong>Stores:</strong><br>
+                            ${product.stores.map(store => `
+                                <div class="store">${store.brand}: $${store.price}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('API Error:', error);
+                content.innerHTML = `
+                    <div class="error">
+                        <h3>Failed to load products</h3>
+                        <p>${error.message}</p>
+                        <button onclick="window.location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Test API on page load
+        testAPI();
+    </script>
+</body>
+</html>

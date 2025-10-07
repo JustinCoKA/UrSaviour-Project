@@ -11,11 +11,96 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // ===== 0) Foundation + Weekly Specials applied (pre-bundled) =====
-  // NOTE: default_image_url comes from the dataset (e.g., "/images/p/P0001.jpg").
-  // If an image file is missing in your project, we fallback to a placeholder via onerror handler.
-  const PRODUCTS = /* foundation+specials JSON */
-[
+  // ===== 0) Products from API =====
+  let PRODUCTS = []; // Will be loaded from API
+  let isLoading = true;
+  let loadError = null;
+
+  // API configuration
+  const API_BASE = window.location.origin.includes('localhost:') ? 'http://localhost:8000' : '';
+  const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
+
+  // Load products from backend API
+  async function loadProducts() {
+    try {
+      isLoading = true;
+      loadError = null;
+      showLoading();
+      
+      const response = await fetch(`${PRODUCTS_ENDPOINT}?limit=100`);
+      if (!response.ok) {
+        throw new Error(`Failed to load products: ${response.status} ${response.statusText}`);
+      }
+      
+      PRODUCTS = await response.json();
+      isLoading = false;
+      render();
+    } catch (error) {
+      console.error('Failed to load products:', error);
+      isLoading = false;
+      loadError = error.message;
+      showError(error.message);
+    }
+  }
+
+  // Show loading state
+  function showLoading() {
+    const gallery = document.getElementById("product-gallery");
+    if (gallery) {
+      gallery.innerHTML = `
+        <div class="loading-state" style="
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+          font-size: 1.2em;
+          color: #666;
+          grid-column: 1 / -1;
+        ">
+          <div>
+            <div style="margin-bottom: 10px;">Loading products...</div>
+            <div style="font-size: 0.9em;">🔄</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Show error state
+  function showError(message) {
+    const gallery = document.getElementById("product-gallery");
+    if (gallery) {
+      gallery.innerHTML = `
+        <div class="error-state" style="
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+          color: #d32f2f;
+          background: #ffebee;
+          border: 1px solid #ffcdd2;
+          border-radius: 8px;
+          padding: 20px;
+          grid-column: 1 / -1;
+        ">
+          <div style="font-size: 1.2em; margin-bottom: 10px;">❌ Failed to load products</div>
+          <div style="margin-bottom: 15px; text-align: center;">${message}</div>
+          <button onclick="window.location.reload()" style="
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+          ">Retry</button>
+        </div>
+      `;
+    }
+  }
+
+  // Static fallback removed - now using API data
+  const STATIC_PRODUCTS = [
   {
     "id": "P0001",
     "name": "Mineral Water",
@@ -1353,8 +1438,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-  ]
-;
+  ]; // End of static fallback data (not used anymore)
 
  // ===== 1) State =====
   const PER_PAGE = 20;  // 4 columns × 5 rows
@@ -1511,8 +1595,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ===== 5) Initial render =====
-  render();
+  // ===== 5) Initial load and render =====
+  loadProducts();
 
   // Expose toggleLike to global scope (needed for onclick in HTML)
   window.toggleLike = toggleLike;
