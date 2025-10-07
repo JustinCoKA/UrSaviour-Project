@@ -8,6 +8,7 @@ passlib[bcrypt]==1.7.4
 PyJWT==2.9.0
 pydantic==2.9.2
 pydantic-settings==2.5.2
+email-validator==2.0.0
 apscheduler==3.10.4
 watchdog==5.0.2 # local watch-folder option
 boto3==1.35.28 # AWS (optional)

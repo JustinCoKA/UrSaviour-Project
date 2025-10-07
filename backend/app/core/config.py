@@ -1,7 +1,8 @@
 # backend/app/core/config.py
-from typing import Optional, List
+from typing import Optional, List, Union
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import json
 
 class Settings(BaseSettings):
     # Config for pydantic-settings v2
@@ -12,6 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+
     # --- Base ---
     APP_ENV: str = Field(default="dev", description="dev|staging|prod")
     PROJECT_NAME: str = "UrSaviour"
@@ -19,14 +21,28 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api/v1"
 
     # --- CORS ---
-    BACKEND_CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])
+    # allow str OR list, normalize to list in validator
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = Field(default="*")
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def split_cors_origins(cls, v):
-        # Parse comma-separated origins into list
-        if isinstance(v, str):
-            return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+    def parse_cors_origins(cls, v):
+        # None/empty -> wildcard for dev
+        if v is None:
+            return ["*"]
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        s = str(v).strip()
+        if not s:
+            return ["*"]
+        # Try JSON list first
+        if s.startswith("["):
+            try:
+                arr = json.loads(s)
+                return [str(x).strip() for x in arr if str(x).strip()]
+            except Exception:
+                pass
+        # Fallback: comma-separated
+        return [o.strip() for o in s.split(",") if o.strip()]
 
     # --- Database ---
     DB_SCHEME: str = "mysql+pymysql"

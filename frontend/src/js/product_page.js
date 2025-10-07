@@ -1354,9 +1354,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   ]
-
-
-
 ;
 
  // ===== 1) State =====
@@ -1411,12 +1408,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const liked = WATCHLIST.includes(item.id);
     const likeBtn = `<span class="like-btn ${liked ? "active" : ""}" onclick="toggleLike('${item.id}')">❤</span>`;
 
+    const formatDate = ts => {
+      if (!ts) return "";
+      // try ISO or epoch (ms) or epoch (s)
+      let d = new Date(ts);
+      if (isNaN(d)) {
+        // try numeric
+        const n = Number(ts);
+        if (!isNaN(n)) d = new Date(n > 1e12 ? n : n * 1000);
+      }
+      if (isNaN(d)) return "";
+      return d.toLocaleString();
+    };
+
     const rows = item.stores.map(s => {
+      // price display
       const hasOriginal = typeof s.original_price === "number" && s.original_price > s.price;
       const right = hasOriginal
         ? `<span><span class="original">$${s.original_price.toFixed(2)}</span>$${Number(s.price).toFixed(2)}</span>`
         : `<span>$${Number(s.price).toFixed(2)}</span>`;
-      return `<div><span>${s.brand}</span>${right}</div>`;
+
+      // prefer jobNumber over jobId when present on store-level metadata
+      const jobLabel = s.jobNumber ? `Job #${s.jobNumber}` : (s.jobId ? `Job ${s.jobId}` : "");
+      const lastUpdated = s.lastUpdatedAt || s.last_updated_at || s.updatedAt || s.updated_at || null;
+      const lastStr = lastUpdated ? `<small class="meta">Updated: ${formatDate(lastUpdated)}</small>` : "";
+      const jobStr = jobLabel ? `<small class="meta">${jobLabel}</small>` : "";
+
+      const meta = (jobStr || lastStr) ? `<div class="meta-row">${jobStr} ${lastStr}</div>` : "";
+
+      return `<div><span>${s.brand}</span>${right}${meta}</div>`;
     }).join("");
 
     const desc = item.description ? `<div class="desc">${item.description}</div>` : "";
