@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Debug Test</title>
+</head>
+<body>
+    <h1>Frontend Debug Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="results"></div>
+
+    <script>
+        async function testAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Making fetch request...');
+                const response = await fetch('http://localhost:8000/api/v1/products/products?limit=3');
+                console.log('Response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data:', data);
+                
+                resultsDiv.innerHTML = `
+                    <h3>Success! Got ${data.length} products</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `
+                    <h3 style="color: red;">Error: ${error.message}</h3>
+                    <p>Check the browser console for more details.</p>
+                `;
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', testAPI);
+    </script>
+</body>
+</html>

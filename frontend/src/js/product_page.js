@@ -27,12 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
       loadError = null;
       showLoading();
       
+      console.log('Loading products from:', `${PRODUCTS_ENDPOINT}?limit=100`);
       const response = await fetch(`${PRODUCTS_ENDPOINT}?limit=100`);
+      console.log('API Response status:', response.status, response.statusText);
+      
       if (!response.ok) {
         throw new Error(`Failed to load products: ${response.status} ${response.statusText}`);
       }
       
       PRODUCTS = await response.json();
+      console.log(`Loaded ${PRODUCTS.length} products from API`);
+      
       isLoading = false;
       render();
     } catch (error) {
