@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UrSaviour - Products</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+  <!-- Global Header -->
+  <div data-include="components/header.html"></div>
+  <main class="product-page">
+
+    <!-- Search Bar (wide) -->
+    <div id="searching-bar" class="searching-bar">
+      <input id="searchInput" type="text" placeholder="🔍 Search products or categories"/>
+    </div>
+
+    <div class="product-layout">
+      <!-- Filters (open by default; can be closed) -->
+      <aside class="filter-panel">
+        <h2 class="filter-title">Filter by</h2>
+
+        <div class="filter-section">
+          <h3>Categories</h3>
+          <div class="panel open">
+            <button class="valuesButton" data-filter="all">Show All</button>
+            <button class="valuesButton" data-filter="Bakery">Bakery</button>
+            <button class="valuesButton" data-filter="Beverages">Beverages</button>
+            <button class="valuesButton" data-filter="Dairy">Dairy</button>
+            <button class="valuesButton" data-filter="Health">Health</button>
+            <button class="valuesButton" data-filter="Household">Household</button>
+            <button class="valuesButton" data-filter="Meat">Meat</button>
+            <button class="valuesButton" data-filter="Snacks">Snacks</button>
+            <button class="valuesButton" data-filter="Frozen">Frozen</button>
+            <button class="valuesButton" data-filter="Fruit">Fruit</button>
+            <button class="valuesButton" data-filter="Pantry">Pantry</button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3>Special Offers</h3>
+          <div class="panel open">
+            <button class="valuesButton" data-offer="Half Price">Half Price</button>
+            <button class="valuesButton" data-offer="30% OFF">30% OFF</button>
+            <button class="valuesButton" data-offer="10% OFF">10% OFF</button>
+            <button class="valuesButton" data-offer="Big deal">Big deal</button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3>Price Range</h3>
+          <div class="panel open">
+            <input type="range" id="priceRange" min="0" max="100" value="25">
+            <p>Selected Price: $<span id="currentPrice">25</span></p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Product Grid -->
+      <section id="product-gallery" class="product-gallery"></section>
+    </div>
+
+    <!-- Pagination -->
+    <nav id="pagination" class="pagination"></nav>
+  </main>
+
+  <!-- Footer -->
+  <div data-include="components/footer.html"></div>
+  <!-- Chat -->
+  <div data-include="components/chat.html"></div>
+
+  <!-- Scripts -->
+  <script src="js/include.js" defer></script>
+  <script src="js/chat-toggle.js" defer></script>
+  <script src="js/product_page.js" defer></script>
+</body>
+</html>
