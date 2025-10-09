@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UrSaviour - Watchlist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css"/>
+  <link rel="stylesheet" href="css/watchlist.css"/>
+</head>
+<body>
+  <!-- Global Header -->
+  <div data-include="components/header.html"></div>
+
+  <main class="watchlist-page">
+    <h1 class="page-title">My Watchlist ❤️</h1>
+
+    <!-- Email notice -->
+    <div class="email-notice">
+      When an item on your watchlist gets a discount, we’ll email you if you’ve opted in for notifications.
+      <br/>You can toggle “Email me when a discount starts” per item below.
+    </div>
+
+    <!-- List (1 column rows) -->
+    <section id="watchlist-list" class="watchlist-list"></section>
+
+    <!-- Empty fallback -->
+    <div id="empty-watchlist" class="empty-message" style="display:none;">
+      Your watchlist is empty. Go back to <a href="products.html">products</a> and add items using the ❤️ button.
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <div data-include="components/footer.html"></div>
+  <!-- Chat -->
+  <div data-include="components/chat.html"></div>
+
+  <!-- Scripts -->
+  <script src="js/include.js" defer></script>
+  <script src="js/chat-toggle.js" defer></script>
+  <script src="js/watchlist.js" defer></script>
+</body>
+</html>

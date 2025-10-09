@@ -1,88 +1,1603 @@
-//1. product_page.js
+/* products.js
+ * Data source: foundational_dataset_v1.csv (100 products x 4 stores)
+ * Weekly specials: no.27week_special.pdf (30 matched discounts)
+ * - Each product has 4 store rows (brand + price)
+ * - If a weekly special matches (product_name + store), we:
+ *    1) Show a badge (Half Price / 30% OFF / 10% OFF / Big deal)
+ *    2) Replace that store's price with final price and keep original_price (strike-through)
+ * - 4-column grid, filters open by default, collapsible by clicking section titles
+ * - Wide search bar
+ * - Watchlist: like button per product (saved in localStorage for now)
+ */
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", () => {
+  // ===== 0) Products from API =====
+  let PRODUCTS = []; // Will be loaded from API
+  let isLoading = true;
+  let loadError = null;
+
+  // API configuration
+  const API_BASE = window.location.origin.includes('localhost:') ? 'http://localhost:8000' : '';
+  const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
+
+  // Load products from backend API
+  async function loadProducts() {
+    try {
+      isLoading = true;
+      loadError = null;
+      showLoading();
+      
+      const response = await fetch(`${PRODUCTS_ENDPOINT}?limit=100`);
+      if (!response.ok) {
+        throw new Error(`Failed to load products: ${response.status} ${response.statusText}`);
+      }
+      
+      PRODUCTS = await response.json();
+      isLoading = false;
+      render();
+    } catch (error) {
+      console.error('Failed to load products:', error);
+      isLoading = false;
+      loadError = error.message;
+      showError(error.message);
+    }
+  }
+
+  // Show loading state
+  function showLoading() {
     const gallery = document.getElementById("product-gallery");
-    const moreBtn = document.getElementById("more-here");
-    
-    // Check if elements exist before proceeding
-    if (!gallery || !moreBtn) {
-        console.error("Product gallery or more button not found.");
-        return;
+    if (gallery) {
+      gallery.innerHTML = `
+        <div class="loading-state" style="
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+          font-size: 1.2em;
+          color: #666;
+          grid-column: 1 / -1;
+        ">
+          <div>
+            <div style="margin-bottom: 10px;">Loading products...</div>
+            <div style="font-size: 0.9em;">🔄</div>
+          </div>
+        </div>
+      `;
     }
+  }
 
-    // Generate fake data 
-    let products = [];
-    for (let i = 1; i <= 20; i++) {
-        products.push({
-            name: "Item " + i,
-            image: "https://placehold.co/250x150?text=Item+" + i,
-            stores: [
-                { brand: "Store A", price: (i * 2.5).toFixed(2) },
-                { brand: "Store B", price: (i * 2.3).toFixed(2) },
-                { brand: "Store C", price: (i * 2.7).toFixed(2) }, 
-                { brand: "Store D", price: (i * 2.7).toFixed(2) }
-            ]
-        });
+  // Show error state
+  function showError(message) {
+    const gallery = document.getElementById("product-gallery");
+    if (gallery) {
+      gallery.innerHTML = `
+        <div class="error-state" style="
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 200px;
+          color: #d32f2f;
+          background: #ffebee;
+          border: 1px solid #ffcdd2;
+          border-radius: 8px;
+          padding: 20px;
+          grid-column: 1 / -1;
+        ">
+          <div style="font-size: 1.2em; margin-bottom: 10px;">❌ Failed to load products</div>
+          <div style="margin-bottom: 15px; text-align: center;">${message}</div>
+          <button onclick="window.location.reload()" style="
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+          ">Retry</button>
+        </div>
+      `;
     }
+  }
 
-    let shown = 0;
-    const perPage = 6;
+  // Static fallback removed - now using API data
+  const STATIC_PRODUCTS = [
+  {
+    "id": "P0001",
+    "name": "Mineral Water",
+    "category": "Frozen",
+    "description": "Standard pack of mineral water",
+    "image": "/images/p/P0001.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 11.94 },
+      { "brand": "Mio Mart", "price": 6.00, "original_price": 11.99 },
+      { "brand": "Austin Fresh", "price": 11.73 },
+      { "brand": "Aadarsh Deals", "price": 11.95 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0002",
+    "name": "Lettuce",
+    "category": "Fruit",
+    "description": "Standard pack of lettuce",
+    "image": "/images/p/P0002.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 12.87 },
+      { "brand": "Mio Mart", "price": 12.86 },
+      { "brand": "Austin Fresh", "price": 12.53 },
+      { "brand": "Aadarsh Deals", "price": 12.80 }
+    ]
+  },
+  {
+    "id": "P0003",
+    "name": "Custard",
+    "category": "Meat",
+    "description": "Standard pack of custard",
+    "image": "/images/p/P0003.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 13.31 },
+      { "brand": "Mio Mart", "price": 13.39 },
+      { "brand": "Austin Fresh", "price": 13.06 },
+      { "brand": "Aadarsh Deals", "price": 13.27 }
+    ]
+  },
+  {
+    "id": "P0004",
+    "name": "Trash Bag",
+    "category": "Fruit",
+    "description": "Standard pack of trash bag",
+    "image": "/images/p/P0004.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 1.21, "original_price": 1.73 },
+      { "brand": "Mio Mart", "price": 2.11 },
+      { "brand": "Austin Fresh", "price": 1.92 },
+      { "brand": "Aadarsh Deals", "price": 1.68 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0005",
+    "name": "Ice Cream",
+    "category": "Snacks",
+    "description": "Standard pack of ice cream",
+    "image": "/images/p/P0005.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 14.17 },
+      { "brand": "Mio Mart", "price": 14.42 },
+      { "brand": "Austin Fresh", "price": 14.24 },
+      { "brand": "Aadarsh Deals", "price": 14.23 }
+    ]
+  },
+  {
+    "id": "P0006",
+    "name": "Frozen Broccoli",
+    "category": "Snacks",
+    "description": "Standard pack of frozen broccoli",
+    "image": "/images/p/P0006.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 8.72 },
+      { "brand": "Mio Mart", "price": 8.85 },
+      { "brand": "Austin Fresh", "price": 8.58 },
+      { "brand": "Aadarsh Deals", "price": 8.71 }
+    ]
+  },
+  {
+    "id": "P0007",
+    "name": "Bleach",
+    "category": "Health",
+    "description": "Standard pack of bleach",
+    "image": "/images/p/P0007.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 10.31 },
+      { "brand": "Mio Mart", "price": 10.38 },
+      { "brand": "Austin Fresh", "price": 10.21 },
+      { "brand": "Aadarsh Deals", "price": 10.29 }
+    ]
+  },
+  {
+    "id": "P0008",
+    "name": "Carrot",
+    "category": "Snacks",
+    "description": "Standard pack of carrot",
+    "image": "/images/p/P0008.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.87 },
+      { "brand": "Mio Mart", "price": 5.92 },
+      { "brand": "Austin Fresh", "price": 5.81 },
+      { "brand": "Aadarsh Deals", "price": 5.86 }
+    ]
+  },
+  {
+    "id": "P0009",
+    "name": "Deodorant",
+    "category": "Household",
+    "description": "Standard pack of deodorant",
+    "image": "/images/p/P0009.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 13.31 },
+      { "brand": "Mio Mart", "price": 13.38 },
+      { "brand": "Austin Fresh", "price": 13.16 },
+      { "brand": "Aadarsh Deals", "price": 13.27 }
+    ]
+  },
+  {
+    "id": "P0010",
+    "name": "Frozen Soup",
+    "category": "Household",
+    "description": "Standard pack of frozen soup",
+    "image": "/images/p/P0010.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 14.75 },
+      { "brand": "Mio Mart", "price": 14.84 },
+      { "brand": "Austin Fresh", "price": 14.63 },
+      { "brand": "Aadarsh Deals", "price": 14.72 }
+    ]
+  },
+  {
+    "id": "P0011",
+    "name": "Noodles",
+    "category": "Pantry",
+    "description": "Standard pack of noodles",
+    "image": "/images/p/P0011.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 14.65 },
+      { "brand": "Mio Mart", "price": 14.77 },
+      { "brand": "Austin Fresh", "price": 14.54 },
+      { "brand": "Aadarsh Deals", "price": 14.63 }
+    ]
+  },
+  {
+    "id": "P0012",
+    "name": "Toothpaste",
+    "category": "Pantry",
+    "description": "Standard pack of toothpaste",
+    "image": "/images/p/P0012.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.62 },
+      { "brand": "Mio Mart", "price": 6.64 },
+      { "brand": "Austin Fresh", "price": 6.51 },
+      { "brand": "Aadarsh Deals", "price": 6.60 }
+    ]
+  },
+  {
+    "id": "P0013",
+    "name": "Soda",
+    "category": "Fruit",
+    "description": "Standard pack of soda",
+    "image": "/images/p/P0013.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 9.79 },
+      { "brand": "Mio Mart", "price": 9.92 },
+      { "brand": "Austin Fresh", "price": 9.70 },
+      { "brand": "Aadarsh Deals", "price": 9.84 }
+    ]
+  },
+  {
+    "id": "P0014",
+    "name": "Tuna",
+    "category": "Meat",
+    "description": "Standard pack of tuna",
+    "image": "/images/p/P0014.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.91 },
+      { "brand": "Mio Mart", "price": 2.93 },
+      { "brand": "Austin Fresh", "price": 2.87 },
+      { "brand": "Aadarsh Deals", "price": 2.93 }
+    ]
+  },
+  {
+    "id": "P0015",
+    "name": "Oats",
+    "category": "Beverages",
+    "description": "Standard pack of oats",
+    "image": "/images/p/P0015.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.61 },
+      { "brand": "Mio Mart", "price": 2.70 },
+      { "brand": "Austin Fresh", "price": 2.56 },
+      { "brand": "Aadarsh Deals", "price": 2.60 }
+    ]
+  },
+  {
+    "id": "P0016",
+    "name": "Pork Ribs",
+    "category": "Meat",
+    "description": "Standard pack of pork ribs",
+    "image": "/images/p/P0016.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 7.33 },
+      { "brand": "Mio Mart", "price": 7.42 },
+      { "brand": "Austin Fresh", "price": 7.18 },
+      { "brand": "Aadarsh Deals", "price": 7.27 }
+    ]
+  },
+  {
+    "id": "P0017",
+    "name": "Rice",
+    "category": "Meat",
+    "description": "Standard pack of rice",
+    "image": "/images/p/P0017.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 13.76 },
+      { "brand": "Mio Mart", "price": 13.74 },
+      { "brand": "Austin Fresh", "price": 13.70 },
+      { "brand": "Aadarsh Deals", "price": 13.75 }
+    ]
+  },
+  {
+    "id": "P0018",
+    "name": "Onion",
+    "category": "Beverages",
+    "description": "Standard pack of onion",
+    "image": "/images/p/P0018.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.91 },
+      { "brand": "Mio Mart", "price": 4.99 },
+      { "brand": "Austin Fresh", "price": 4.80 },
+      { "brand": "Aadarsh Deals", "price": 4.87 }
+    ]
+  },
+  {
+    "id": "P0019",
+    "name": "Soy Milk",
+    "category": "Dairy",
+    "description": "Standard pack of soy milk",
+    "image": "/images/p/P0019.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 13.34 },
+      { "brand": "Mio Mart", "price": 13.32 },
+      { "brand": "Austin Fresh", "price": 13.14 },
+      { "brand": "Aadarsh Deals", "price": 13.28 }
+    ]
+  },
+  {
+    "id": "P0020",
+    "name": "Spinach",
+    "category": "Pantry",
+    "description": "Standard pack of spinach",
+    "image": "/images/p/P0020.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 10.53 },
+      { "brand": "Mio Mart", "price": 7.37 },
+      { "brand": "Austin Fresh", "price": 7.46 },
+      { "brand": "Aadarsh Deals", "price": 7.62 }
+    ]
+  },
+  {
+    "id": "P0021",
+    "name": "Apple",
+    "category": "Fruit",
+    "description": "Standard pack of apple",
+    "image": "/images/p/P0021.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.83 },
+      { "brand": "Mio Mart", "price": 4.92 },
+      { "brand": "Austin Fresh", "price": 4.70 },
+      { "brand": "Aadarsh Deals", "price": 4.81 }
+    ]
+  },
+  {
+    "id": "P0022",
+    "name": "Orange Juice",
+    "category": "Beverages",
+    "description": "Standard pack of orange juice",
+    "image": "/images/p/P0022.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.70 },
+      { "brand": "Mio Mart", "price": 6.77 },
+      { "brand": "Austin Fresh", "original_price": 6.75, "price": 4.72 },
+      { "brand": "Aadarsh Deals", "price": 6.71 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0023",
+    "name": "Beef Steak",
+    "category": "Meat",
+    "description": "Standard pack of beef steak",
+    "image": "/images/p/P0023.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 17.23 },
+      { "brand": "Mio Mart", "price": 17.37 },
+      { "brand": "Austin Fresh", "price": 17.05 },
+      { "brand": "Aadarsh Deals", "price": 17.19 }
+    ]
+  },
+  {
+    "id": "P0024",
+    "name": "Cucumber",
+    "category": "Vegetables",
+    "description": "Standard pack of cucumber",
+    "image": "/images/p/P0024.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.27 },
+      { "brand": "Mio Mart", "price": 3.32 },
+      { "brand": "Austin Fresh", "price": 3.16 },
+      { "brand": "Aadarsh Deals", "price": 3.22 }
+    ]
+  },
+  {
+    "id": "P0025",
+    "name": "Tomato",
+    "category": "Vegetables",
+    "description": "Standard pack of tomato",
+    "image": "/images/p/P0025.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.11 },
+      { "brand": "Mio Mart", "original_price": 3.20, "price": 2.24 },
+      { "brand": "Austin Fresh", "price": 3.08 },
+      { "brand": "Aadarsh Deals", "price": 3.15 }
+    ],
+    "special": { "type": "30% OFF", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0026",
+    "name": "Cereal",
+    "category": "Pantry",
+    "description": "Standard pack of cereal",
+    "image": "/images/p/P0026.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.71 },
+      { "brand": "Mio Mart", "price": 4.76 },
+      { "brand": "Austin Fresh", "price": 4.60 },
+      { "brand": "Aadarsh Deals", "price": 4.68 }
+    ]
+  },
+  {
+    "id": "P0027",
+    "name": "Banana",
+    "category": "Fruit",
+    "description": "Standard pack of banana",
+    "image": "/images/p/P0027.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 2.20, "price": 1.10 },
+      { "brand": "Mio Mart", "price": 2.18 },
+      { "brand": "Austin Fresh", "price": 2.15 },
+      { "brand": "Aadarsh Deals", "price": 2.17 }
+    ],
+    "special": { "type": "Half Price", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0028",
+    "name": "Pasta",
+    "category": "Pantry",
+    "description": "Standard pack of pasta",
+    "image": "/images/p/P0028.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.32 },
+      { "brand": "Mio Mart", "price": 6.39 },
+      { "brand": "Austin Fresh", "price": 6.21 },
+      { "brand": "Aadarsh Deals", "price": 6.29 }
+    ]
+  },
+  {
+    "id": "P0029",
+    "name": "Chicken Breast",
+    "category": "Meat",
+    "description": "Standard pack of chicken breast",
+    "image": "/images/p/P0029.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 9.13 },
+      { "brand": "Mio Mart", "price": 9.21 },
+      { "brand": "Austin Fresh", "price": 9.05 },
+      { "brand": "Aadarsh Deals", "price": 9.10 }
+    ]
+  },
+  {
+    "id": "P0030",
+    "name": "Bread",
+    "category": "Bakery",
+    "description": "Wholegrain bread 700g",
+    "image": "/images/p/P0030.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.80 },
+      { "brand": "Mio Mart", "original_price": 3.90, "price": 2.73 },
+      { "brand": "Austin Fresh", "price": 3.79 },
+      { "brand": "Aadarsh Deals", "price": 3.82 }
+    ],
+    "special": { "type": "30% OFF", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0031",
+    "name": "Eggs 12 pack",
+    "category": "Dairy",
+    "description": "Dozen eggs pack",
+    "image": "/images/p/P0031.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.30 },
+      { "brand": "Mio Mart", "price": 4.35 },
+      { "brand": "Austin Fresh", "price": 4.22 },
+      { "brand": "Aadarsh Deals", "price": 4.28 }
+    ]
+  },
+  {
+    "id": "P0032",
+    "name": "Butter",
+    "category": "Dairy",
+    "description": "Standard pack of butter",
+    "image": "/images/p/P0032.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.90 },
+      { "brand": "Mio Mart", "price": 2.96 },
+      { "brand": "Austin Fresh", "price": 2.83 },
+      { "brand": "Aadarsh Deals", "price": 2.89 }
+    ]
+  },
+  {
+    "id": "P0033",
+    "name": "Flour",
+    "category": "Pantry",
+    "description": "Plain flour 1kg",
+    "image": "/images/p/P0033.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.80 },
+      { "brand": "Mio Mart", "price": 2.85 },
+      { "brand": "Austin Fresh", "original_price": 2.83, "price": 1.98 },
+      { "brand": "Aadarsh Deals", "price": 2.79 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0034",
+    "name": "Salt",
+    "category": "Pantry",
+    "description": "Table salt 1kg",
+    "image": "/images/p/P0034.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 1.70 },
+      { "brand": "Mio Mart", "price": 1.72 },
+      { "brand": "Austin Fresh", "original_price": 1.71, "price": 1.20 },
+      { "brand": "Aadarsh Deals", "price": 1.69 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0035",
+    "name": "Chicken Thigh",
+    "category": "Meat",
+    "description": "Standard pack of chicken thigh",
+    "image": "/images/p/P0035.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 8.40, "price": 5.88 },
+      { "brand": "Mio Mart", "price": 8.35 },
+      { "brand": "Austin Fresh", "price": 8.30 },
+      { "brand": "Aadarsh Deals", "price": 8.33 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0036",
+    "name": "Tissue",
+    "category": "Household",
+    "description": "Box of tissues",
+    "image": "/images/p/P0036.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 2.50, "price": 1.75 },
+      { "brand": "Mio Mart", "price": 2.52 },
+      { "brand": "Austin Fresh", "price": 2.48 },
+      { "brand": "Aadarsh Deals", "price": 2.51 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0037",
+    "name": "Iced Tea",
+    "category": "Beverages",
+    "description": "Bottle of iced tea",
+    "image": "/images/p/P0037.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.10 },
+      { "brand": "Mio Mart", "original_price": 4.12, "price": 2.06 },
+      { "brand": "Austin Fresh", "price": 4.09 },
+      { "brand": "Aadarsh Deals", "price": 4.11 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0038",
+    "name": "Toilet Paper",
+    "category": "Household",
+    "description": "12 pack toilet rolls",
+    "image": "/images/p/P0038.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 7.00, "price": 4.90 },
+      { "brand": "Mio Mart", "price": 6.95 },
+      { "brand": "Austin Fresh", "price": 6.92 },
+      { "brand": "Aadarsh Deals", "price": 6.97 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0039",
+    "name": "Nuts Mix",
+    "category": "Snacks",
+    "description": "Pack of mixed nuts",
+    "image": "/images/p/P0039.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.50 },
+      { "brand": "Mio Mart", "price": 5.57 },
+      { "brand": "Austin Fresh", "original_price": 5.55, "price": 3.88 },
+      { "brand": "Aadarsh Deals", "price": 5.51 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0040",
+    "name": "Cookies",
+    "category": "Snacks",
+    "description": "Box of cookies",
+    "image": "/images/p/P0040.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.90 },
+      { "brand": "Mio Mart", "original_price": 3.92, "price": 1.96 },
+      { "brand": "Austin Fresh", "price": 3.88 },
+      { "brand": "Aadarsh Deals", "price": 3.91 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0041",
+    "name": "Chocolate Biscuit",
+    "category": "Snacks",
+    "description": "Box of chocolate biscuits",
+    "image": "/images/p/P0041.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.80 },
+      { "brand": "Mio Mart", "original_price": 4.85, "price": 2.42 },
+      { "brand": "Austin Fresh", "price": 4.79 },
+      { "brand": "Aadarsh Deals", "price": 4.83 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0042",
+    "name": "Soy Sauce",
+    "category": "Pantry",
+    "description": "Bottle of soy sauce",
+    "image": "/images/p/P0042.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.20 },
+      { "brand": "Mio Mart", "price": 3.22 },
+      { "brand": "Austin Fresh", "original_price": 3.25, "price": 1.63 },
+      { "brand": "Aadarsh Deals", "price": 3.18 }
+    ],
+    "special": { "type": "Half Price", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0043",
+    "name": "Bagel",
+    "category": "Bakery",
+    "description": "Pack of bagels",
+    "image": "/images/p/P0043.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.00 },
+      { "brand": "Mio Mart", "original_price": 3.05, "price": 2.13 },
+      { "brand": "Austin Fresh", "price": 3.02 },
+      { "brand": "Aadarsh Deals", "price": 3.01 }
+    ],
+    "special": { "type": "30% OFF", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0044",
+    "name": "Pita Bread",
+    "category": "Bakery",
+    "description": "Pack of pita bread",
+    "image": "/images/p/P0044.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.50 },
+      { "brand": "Mio Mart", "price": 2.52 },
+      { "brand": "Austin Fresh", "original_price": 2.55, "price": 1.28 },
+      { "brand": "Aadarsh Deals", "price": 2.48 }
+    ],
+    "special": { "type": "Half Price", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0045",
+    "name": "Vinegar",
+    "category": "Pantry",
+    "description": "Bottle of vinegar",
+    "image": "/images/p/P0045.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.10 },
+      { "brand": "Mio Mart", "original_price": 2.15, "price": 1.50 },
+      { "brand": "Austin Fresh", "price": 2.09 },
+      { "brand": "Aadarsh Deals", "price": 2.11 }
+    ],
+    "special": { "type": "30% OFF", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0046",
+    "name": "Canned Corn",
+    "category": "Pantry",
+    "description": "Can of corn kernels",
+    "image": "/images/p/P0046.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 1.90 },
+      { "brand": "Mio Mart", "original_price": 1.95, "price": 0.98 },
+      { "brand": "Austin Fresh", "price": 1.88 },
+      { "brand": "Aadarsh Deals", "price": 1.92 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0047",
+    "name": "Rice Cracker",
+    "category": "Snacks",
+    "description": "Pack of rice crackers",
+    "image": "/images/p/P0047.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.40 },
+      { "brand": "Mio Mart", "price": 2.45 },
+      { "brand": "Austin Fresh", "original_price": 2.42, "price": 1.69 },
+      { "brand": "Aadarsh Deals", "price": 2.41 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0048",
+    "name": "Fruit Smoothie",
+    "category": "Beverages",
+    "description": "Bottle of fruit smoothie",
+    "image": "/images/p/P0048.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.90 },
+      { "brand": "Mio Mart", "original_price": 4.95, "price": 2.48 },
+      { "brand": "Austin Fresh", "price": 4.92 },
+      { "brand": "Aadarsh Deals", "price": 4.89 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0049",
+    "name": "Donut",
+    "category": "Bakery",
+    "description": "Pack of donuts",
+    "image": "/images/p/P0049.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.50 },
+      { "brand": "Mio Mart", "original_price": 3.55, "price": 2.49 },
+      { "brand": "Austin Fresh", "price": 3.51 },
+      { "brand": "Aadarsh Deals", "price": 3.53 }
+    ],
+    "special": { "type": "30% OFF", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0050",
+    "name": "Yogurt Drink",
+    "category": "Dairy",
+    "description": "Pack of yogurt drink",
+    "image": "/images/p/P0050.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.20 },
+      { "brand": "Mio Mart", "price": 4.25 },
+      { "brand": "Austin Fresh", "original_price": 4.22, "price": 2.95 },
+      { "brand": "Aadarsh Deals", "price": 4.21 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0051",
+    "name": "Lamb Leg",
+    "category": "Meat",
+    "description": "Pack of lamb leg",
+    "image": "/images/p/P0051.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 15.00 },
+      { "brand": "Mio Mart", "original_price": 15.10, "price": 7.55 },
+      { "brand": "Austin Fresh", "price": 14.98 },
+      { "brand": "Aadarsh Deals", "price": 15.03 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0052",
+    "name": "Croissant",
+    "category": "Bakery",
+    "description": "Pack of croissants",
+    "image": "/images/p/P0052.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.20 },
+      { "brand": "Mio Mart", "price": 5.25 },
+      { "brand": "Austin Fresh", "original_price": 5.22, "price": 3.65 },
+      { "brand": "Aadarsh Deals", "price": 5.19 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0053",
+    "name": "Cheese Block",
+    "category": "Dairy",
+    "description": "Block of cheese",
+    "image": "/images/p/P0053.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.80 },
+      { "brand": "Mio Mart", "price": 6.85 },
+      { "brand": "Austin Fresh", "price": 6.78 },
+      { "brand": "Aadarsh Deals", "price": 6.79 }
+    ]
+  },
+  {
+    "id": "P0054",
+    "name": "Rice Bag 5kg",
+    "category": "Pantry",
+    "description": "Bag of rice 5kg",
+    "image": "/images/p/P0054.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 12.50 },
+      { "brand": "Mio Mart", "price": 12.55 },
+      { "brand": "Austin Fresh", "price": 12.48 },
+      { "brand": "Aadarsh Deals", "price": 12.51 }
+    ]
+  },
+  {
+    "id": "P0055",
+    "name": "Green Beans",
+    "category": "Vegetables",
+    "description": "Standard pack of green beans",
+    "image": "/images/p/P0055.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.80 },
+      { "brand": "Mio Mart", "price": 3.85 },
+      { "brand": "Austin Fresh", "price": 3.78 },
+      { "brand": "Aadarsh Deals", "price": 3.82 }
+    ]
+  },
+  {
+    "id": "P0056",
+    "name": "Fish Fillet",
+    "category": "Meat",
+    "description": "Pack of fish fillet",
+    "image": "/images/p/P0056.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 9.90 },
+      { "brand": "Mio Mart", "price": 9.95 },
+      { "brand": "Austin Fresh", "price": 9.87 },
+      { "brand": "Aadarsh Deals", "price": 9.91 }
+    ]
+  },
+  {
+    "id": "P0057",
+    "name": "Yogurt Tub",
+    "category": "Dairy",
+    "description": "Tub of yogurt",
+    "image": "/images/p/P0057.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.70 },
+      { "brand": "Mio Mart", "price": 3.75 },
+      { "brand": "Austin Fresh", "price": 3.68 },
+      { "brand": "Aadarsh Deals", "price": 3.71 }
+    ]
+  },
+  {
+    "id": "P0058",
+    "name": "Frozen Pizza",
+    "category": "Frozen",
+    "description": "Pack of frozen pizza",
+    "image": "/images/p/P0058.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 6.00, "price": 4.20 },
+      { "brand": "Mio Mart", "price": 5.95 },
+      { "brand": "Austin Fresh", "price": 5.92 },
+      { "brand": "Aadarsh Deals", "price": 5.97 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0059",
+    "name": "Coffee",
+    "category": "Beverages",
+    "description": "Jar of coffee",
+    "image": "/images/p/P0059.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 8.70 },
+      { "brand": "Mio Mart", "price": 8.75 },
+      { "brand": "Austin Fresh", "price": 8.68 },
+      { "brand": "Aadarsh Deals", "price": 8.72 }
+    ]
+  },
+  {
+    "id": "P0060",
+    "name": "Green Tea",
+    "category": "Beverages",
+    "description": "Box of green tea bags",
+    "image": "/images/p/P0060.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.90 },
+      { "brand": "Mio Mart", "price": 2.92 },
+      { "brand": "Austin Fresh", "price": 2.88 },
+      { "brand": "Aadarsh Deals", "price": 2.91 }
+    ]
+  },
+    {
+    "id": "P0061",
+    "name": "Strawberry Jam",
+    "category": "Pantry",
+    "description": "Jar of strawberry jam",
+    "image": "/images/p/P0061.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.40 },
+      { "brand": "Mio Mart", "price": 3.45 },
+      { "brand": "Austin Fresh", "price": 3.37 },
+      { "brand": "Aadarsh Deals", "price": 3.39 }
+    ]
+  },
+  {
+    "id": "P0062",
+    "name": "Peanut Butter",
+    "category": "Pantry",
+    "description": "Jar of peanut butter",
+    "image": "/images/p/P0062.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.80 },
+      { "brand": "Mio Mart", "price": 4.85 },
+      { "brand": "Austin Fresh", "price": 4.78 },
+      { "brand": "Aadarsh Deals", "price": 4.81 }
+    ]
+  },
+  {
+    "id": "P0063",
+    "name": "Jam Donut",
+    "category": "Bakery",
+    "description": "Pack of jam donuts",
+    "image": "/images/p/P0063.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.20 },
+      { "brand": "Mio Mart", "price": 3.25 },
+      { "brand": "Austin Fresh", "price": 3.18 },
+      { "brand": "Aadarsh Deals", "price": 3.22 }
+    ]
+  },
+  {
+    "id": "P0064",
+    "name": "Granola",
+    "category": "Pantry",
+    "description": "Pack of granola cereal",
+    "image": "/images/p/P0064.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.10 },
+      { "brand": "Mio Mart", "price": 5.15 },
+      { "brand": "Austin Fresh", "price": 5.07 },
+      { "brand": "Aadarsh Deals", "price": 5.12 }
+    ]
+  },
+  {
+    "id": "P0065",
+    "name": "Tomato Sauce",
+    "category": "Pantry",
+    "description": "Bottle of tomato sauce",
+    "image": "/images/p/P0065.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.50 },
+      { "brand": "Mio Mart", "price": 2.55 },
+      { "brand": "Austin Fresh", "price": 2.47 },
+      { "brand": "Aadarsh Deals", "price": 2.51 }
+    ]
+  },
+  {
+    "id": "P0066",
+    "name": "Olive Oil",
+    "category": "Pantry",
+    "description": "Bottle of olive oil",
+    "image": "/images/p/P0066.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 7.90 },
+      { "brand": "Mio Mart", "price": 7.95 },
+      { "brand": "Austin Fresh", "price": 7.87 },
+      { "brand": "Aadarsh Deals", "price": 7.91 }
+    ]
+  },
+  {
+    "id": "P0067",
+    "name": "Honey",
+    "category": "Pantry",
+    "description": "Jar of honey",
+    "image": "/images/p/P0067.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.40 },
+      { "brand": "Mio Mart", "price": 6.45 },
+      { "brand": "Austin Fresh", "price": 6.38 },
+      { "brand": "Aadarsh Deals", "price": 6.42 }
+    ]
+  },
+  {
+    "id": "P0068",
+    "name": "Mustard",
+    "category": "Pantry",
+    "description": "Jar of mustard",
+    "image": "/images/p/P0068.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.80 },
+      { "brand": "Mio Mart", "price": 2.85 },
+      { "brand": "Austin Fresh", "price": 2.77 },
+      { "brand": "Aadarsh Deals", "price": 2.82 }
+    ]
+  },
+  {
+    "id": "P0069",
+    "name": "Mayonnaise",
+    "category": "Pantry",
+    "description": "Jar of mayonnaise",
+    "image": "/images/p/P0069.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.30 },
+      { "brand": "Mio Mart", "price": 3.35 },
+      { "brand": "Austin Fresh", "price": 3.27 },
+      { "brand": "Aadarsh Deals", "price": 3.31 }
+    ]
+  },
+  {
+    "id": "P0070",
+    "name": "Ketchup",
+    "category": "Pantry",
+    "description": "Bottle of ketchup",
+    "image": "/images/p/P0070.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.70 },
+      { "brand": "Mio Mart", "price": 2.75 },
+      { "brand": "Austin Fresh", "price": 2.67 },
+      { "brand": "Aadarsh Deals", "price": 2.71 }
+    ]
+  },
+  {
+    "id": "P0071",
+    "name": "Spaghetti",
+    "category": "Pantry",
+    "description": "Pack of spaghetti",
+    "image": "/images/p/P0071.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 1.90 },
+      { "brand": "Mio Mart", "price": 1.95 },
+      { "brand": "Austin Fresh", "price": 1.87 },
+      { "brand": "Aadarsh Deals", "price": 1.91 }
+    ]
+  },
+  {
+    "id": "P0072",
+    "name": "Sugar",
+    "category": "Pantry",
+    "description": "Pack of white sugar",
+    "image": "/images/p/P0072.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.60 },
+      { "brand": "Mio Mart", "price": 2.65 },
+      { "brand": "Austin Fresh", "price": 2.58 },
+      { "brand": "Aadarsh Deals", "price": 2.62 }
+    ]
+  },
+  {
+    "id": "P0073",
+    "name": "Brown Sugar",
+    "category": "Pantry",
+    "description": "Pack of brown sugar",
+    "image": "/images/p/P0073.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.70 },
+      { "brand": "Mio Mart", "price": 2.75 },
+      { "brand": "Austin Fresh", "price": 2.67 },
+      { "brand": "Aadarsh Deals", "price": 2.71 }
+    ]
+  },
+  {
+    "id": "P0074",
+    "name": "Rice Vinegar",
+    "category": "Pantry",
+    "description": "Bottle of rice vinegar",
+    "image": "/images/p/P0074.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.90 },
+      { "brand": "Mio Mart", "price": 2.95 },
+      { "brand": "Austin Fresh", "price": 2.88 },
+      { "brand": "Aadarsh Deals", "price": 2.92 }
+    ]
+  },
+  {
+    "id": "P0075",
+    "name": "Brown Rice",
+    "category": "Pantry",
+    "description": "Pack of brown rice",
+    "image": "/images/p/P0075.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.10 },
+      { "brand": "Mio Mart", "price": 6.15 },
+      { "brand": "Austin Fresh", "price": 6.07 },
+      { "brand": "Aadarsh Deals", "price": 6.12 }
+    ]
+  },
+  {
+    "id": "P0076",
+    "name": "Whole Wheat Bread",
+    "category": "Bakery",
+    "description": "Whole wheat bread loaf",
+    "image": "/images/p/P0076.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.80 },
+      { "brand": "Mio Mart", "price": 2.85 },
+      { "brand": "Austin Fresh", "price": 2.77 },
+      { "brand": "Aadarsh Deals", "price": 2.81 }
+    ]
+  },
+  {
+    "id": "P0077",
+    "name": "Baguette",
+    "category": "Bakery",
+    "description": "French baguette bread",
+    "image": "/images/p/P0077.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.50 },
+      { "brand": "Mio Mart", "price": 2.55 },
+      { "brand": "Austin Fresh", "price": 2.47 },
+      { "brand": "Aadarsh Deals", "price": 2.52 }
+    ]
+  },
+  {
+    "id": "P0078",
+    "name": "Milk 2L",
+    "category": "Dairy",
+    "description": "Bottle of fresh milk 2L",
+    "image": "/images/p/P0078.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.10 },
+      { "brand": "Mio Mart", "price": 3.15 },
+      { "brand": "Austin Fresh", "price": 3.07 },
+      { "brand": "Aadarsh Deals", "price": 3.11 }
+    ]
+  },
+  {
+    "id": "P0079",
+    "name": "Almond Milk",
+    "category": "Dairy",
+    "description": "Bottle of almond milk",
+    "image": "/images/p/P0079.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.00 },
+      { "brand": "Mio Mart", "price": 4.05 },
+      { "brand": "Austin Fresh", "price": 3.97 },
+      { "brand": "Aadarsh Deals", "price": 4.02 }
+    ]
+  },
+  {
+    "id": "P0080",
+    "name": "Greek Yogurt",
+    "category": "Dairy",
+    "description": "Tub of Greek yogurt",
+    "image": "/images/p/P0080.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.30 },
+      { "brand": "Mio Mart", "price": 5.35 },
+      { "brand": "Austin Fresh", "price": 5.27 },
+      { "brand": "Aadarsh Deals", "price": 5.31 }
+    ]
+  },
+    {
+    "id": "P0081",
+    "name": "Cheddar Cheese",
+    "category": "Dairy",
+    "description": "Block of cheddar cheese",
+    "image": "/images/p/P0081.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.10 },
+      { "brand": "Mio Mart", "price": 6.15 },
+      { "brand": "Austin Fresh", "price": 6.07 },
+      { "brand": "Aadarsh Deals", "price": 6.12 }
+    ]
+  },
+  {
+    "id": "P0082",
+    "name": "Mozzarella Cheese",
+    "category": "Dairy",
+    "description": "Pack of mozzarella cheese",
+    "image": "/images/p/P0082.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.40 },
+      { "brand": "Mio Mart", "price": 5.45 },
+      { "brand": "Austin Fresh", "price": 5.37 },
+      { "brand": "Aadarsh Deals", "price": 5.41 }
+    ]
+  },
+  {
+    "id": "P0083",
+    "name": "Butter Spread",
+    "category": "Dairy",
+    "description": "Tub of butter spread",
+    "image": "/images/p/P0083.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.80 },
+      { "brand": "Mio Mart", "price": 4.85 },
+      { "brand": "Austin Fresh", "price": 4.77 },
+      { "brand": "Aadarsh Deals", "price": 4.82 }
+    ]
+  },
+  {
+    "id": "P0084",
+    "name": "Cream",
+    "category": "Dairy",
+    "description": "Carton of cream",
+    "image": "/images/p/P0084.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.50 },
+      { "brand": "Mio Mart", "price": 3.55 },
+      { "brand": "Austin Fresh", "price": 3.47 },
+      { "brand": "Aadarsh Deals", "price": 3.52 }
+    ]
+  },
+  {
+    "id": "P0085",
+    "name": "Ice Cream Tub",
+    "category": "Snacks",
+    "description": "2L tub of ice cream",
+    "image": "/images/p/P0085.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 6.70 },
+      { "brand": "Mio Mart", "price": 6.75 },
+      { "brand": "Austin Fresh", "original_price": 6.74, "price": 3.37 },
+      { "brand": "Aadarsh Deals", "price": 6.72 }
+    ],
+    "special": { "type": "Half Price", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0086",
+    "name": "Frozen Peas",
+    "category": "Frozen",
+    "description": "Pack of frozen peas",
+    "image": "/images/p/P0086.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 2.60 },
+      { "brand": "Mio Mart", "price": 2.65 },
+      { "brand": "Austin Fresh", "price": 2.58 },
+      { "brand": "Aadarsh Deals", "price": 2.62 }
+    ]
+  },
+  {
+    "id": "P0087",
+    "name": "Frozen Chips",
+    "category": "Frozen",
+    "description": "Pack of frozen potato chips",
+    "image": "/images/p/P0087.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.40 },
+      { "brand": "Mio Mart", "price": 3.45 },
+      { "brand": "Austin Fresh", "original_price": 3.43, "price": 2.40 },
+      { "brand": "Aadarsh Deals", "price": 3.41 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0088",
+    "name": "Frozen Mixed Veg",
+    "category": "Frozen",
+    "description": "Pack of frozen mixed vegetables",
+    "image": "/images/p/P0088.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.10 },
+      { "brand": "Mio Mart", "price": 3.15 },
+      { "brand": "Austin Fresh", "price": 3.07 },
+      { "brand": "Aadarsh Deals", "price": 3.12 }
+    ]
+  },
+  {
+    "id": "P0089",
+    "name": "Frozen Dumplings",
+    "category": "Frozen",
+    "description": "Pack of frozen dumplings",
+    "image": "/images/p/P0089.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.60 },
+      { "brand": "Mio Mart", "original_price": 5.65, "price": 2.82 },
+      { "brand": "Austin Fresh", "price": 5.58 },
+      { "brand": "Aadarsh Deals", "price": 5.61 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0090",
+    "name": "Frozen Fish Fingers",
+    "category": "Frozen",
+    "description": "Pack of frozen fish fingers",
+    "image": "/images/p/P0090.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.80 },
+      { "brand": "Mio Mart", "price": 4.85 },
+      { "brand": "Austin Fresh", "price": 4.77 },
+      { "brand": "Aadarsh Deals", "price": 4.82 }
+    ]
+  },
+  {
+    "id": "P0091",
+    "name": "Frozen Sausages",
+    "category": "Frozen",
+    "description": "Pack of frozen sausages",
+    "image": "/images/p/P0091.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 6.50, "price": 4.55 },
+      { "brand": "Mio Mart", "price": 6.48 },
+      { "brand": "Austin Fresh", "price": 6.46 },
+      { "brand": "Aadarsh Deals", "price": 6.49 }
+    ],
+    "special": { "type": "30% OFF", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0092",
+    "name": "Frozen Nuggets",
+    "category": "Frozen",
+    "description": "Pack of frozen chicken nuggets",
+    "image": "/images/p/P0092.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.10 },
+      { "brand": "Mio Mart", "price": 4.15 },
+      { "brand": "Austin Fresh", "price": 4.07 },
+      { "brand": "Aadarsh Deals", "price": 4.11 }
+    ]
+  },
+  {
+    "id": "P0093",
+    "name": "Frozen Spring Rolls",
+    "category": "Frozen",
+    "description": "Pack of frozen spring rolls",
+    "image": "/images/p/P0093.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.80 },
+      { "brand": "Mio Mart", "price": 3.85 },
+      { "brand": "Austin Fresh", "original_price": 3.83, "price": 2.68 },
+      { "brand": "Aadarsh Deals", "price": 3.81 }
+    ],
+    "special": { "type": "30% OFF", "store": "Austin Fresh" }
+  },
+  {
+    "id": "P0094",
+    "name": "Frozen Waffles",
+    "category": "Frozen",
+    "description": "Pack of frozen waffles",
+    "image": "/images/p/P0094.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 4.00 },
+      { "brand": "Mio Mart", "original_price": 4.05, "price": 2.03 },
+      { "brand": "Austin Fresh", "price": 3.98 },
+      { "brand": "Aadarsh Deals", "price": 4.02 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  },
+  {
+    "id": "P0095",
+    "name": "Frozen Ice Blocks",
+    "category": "Frozen",
+    "description": "Pack of frozen ice blocks",
+    "image": "/images/p/P0095.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.30 },
+      { "brand": "Mio Mart", "price": 3.35 },
+      { "brand": "Austin Fresh", "price": 3.27 },
+      { "brand": "Aadarsh Deals", "price": 3.31 }
+    ]
+  },
+  {
+    "id": "P0096",
+    "name": "Frozen Pancakes",
+    "category": "Frozen",
+    "description": "Pack of frozen pancakes",
+    "image": "/images/p/P0096.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.50 },
+      { "brand": "Mio Mart", "price": 3.55 },
+      { "brand": "Austin Fresh", "price": 3.47 },
+      { "brand": "Aadarsh Deals", "price": 3.52 }
+    ]
+  },
+  {
+    "id": "P0097",
+    "name": "Frozen Cake",
+    "category": "Frozen",
+    "description": "Pack of frozen cake slices",
+    "image": "/images/p/P0097.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.20 },
+      { "brand": "Mio Mart", "price": 5.25 },
+      { "brand": "Austin Fresh", "price": 5.18 },
+      { "brand": "Aadarsh Deals", "price": 5.21 }
+    ]
+  },
+  {
+    "id": "P0098",
+    "name": "Frozen Pie",
+    "category": "Frozen",
+    "description": "Pack of frozen pies",
+    "image": "/images/p/P0098.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "original_price": 4.50, "price": 2.25 },
+      { "brand": "Mio Mart", "price": 4.52 },
+      { "brand": "Austin Fresh", "price": 4.48 },
+      { "brand": "Aadarsh Deals", "price": 4.49 }
+    ],
+    "special": { "type": "Half Price", "store": "Justin Groceries" }
+  },
+  {
+    "id": "P0099",
+    "name": "Frozen Bread Rolls",
+    "category": "Frozen",
+    "description": "Pack of frozen bread rolls",
+    "image": "/images/p/P0099.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 3.10 },
+      { "brand": "Mio Mart", "price": 3.15 },
+      { "brand": "Austin Fresh", "price": 3.07 },
+      { "brand": "Aadarsh Deals", "price": 3.12 }
+    ]
+  },
+  {
+    "id": "P0100",
+    "name": "Frozen Fruit Mix",
+    "category": "Frozen",
+    "description": "Pack of frozen fruit mix",
+    "image": "/images/p/P0100.jpg",
+    "stores": [
+      { "brand": "Justin Groceries", "price": 5.80 },
+      { "brand": "Mio Mart", "original_price": 5.85, "price": 2.92 },
+      { "brand": "Austin Fresh", "price": 5.78 },
+      { "brand": "Aadarsh Deals", "price": 5.82 }
+    ],
+    "special": { "type": "Half Price", "store": "Mio Mart" }
+  }
 
-    function showProducts() {
-        for (let i = shown; i < shown + perPage && i < products.length; i++) {
-            const item = products[i];
-            const card = document.createElement("div");
-            card.className = "card";
 
-            const priceList = item.stores.map(store =>
-                `<div><span>${store.brand}</span><span>$${store.price}</span></div>`
-            ).join("");
+  ]; // End of static fallback data (not used anymore)
 
-            card.innerHTML = `
-                <img src="${item.image}" alt="${item.name}">
-                <h3>${item.name}</h3>
-                <div class="price-list">
-                    ${priceList}
-                </div>
-            `;
-            gallery.appendChild(card);
-        }
-        shown += perPage;
+ // ===== 1) State =====
+  const PER_PAGE = 20;  // 4 columns × 5 rows
+  let currentPage = 1;
+  let activeCategory = "all";
+  let activeOffer = "all";
+  let keyword = "";
 
-        if (shown >= products.length) {
-            moreBtn.style.display = "none";
-        }
-    }
-//2. Price range Buttion 
-    moreBtn.addEventListener("click", showProducts);
+  // Watchlist (saved in localStorage for persistence)
+  let WATCHLIST = JSON.parse(localStorage.getItem("watchlist") || "[]");
 
-    // Show first batch
-    showProducts();
-});
+  // ===== 2) DOM =====
+  const gallery = document.getElementById("product-gallery");
+  const pager = document.getElementById("pagination");
+  const priceRange = document.getElementById("priceRange");
+  const currentPrice = document.getElementById("currentPrice");
+  const searchInput = document.getElementById("searchInput");
 
-const priceRange = document.getElementById('priceRange');
-        const currentPrice = document.getElementById('currentPrice');
+  // ===== 3) Helpers =====
+  const getFiltered = () => {
+    const priceMax = priceRange ? Number(priceRange.value) : Infinity;
+    return PRODUCTS.filter(p => {
+      const catOk = activeCategory === "all" || p.category === activeCategory;
+      const offerOk = activeOffer === "all" || (p.special && p.special.type === activeOffer);
+      const kw = keyword.trim().toLowerCase();
+      const kwOk = !kw || p.name.toLowerCase().includes(kw) || (p.category && p.category.toLowerCase().includes(kw));
+      const minPrice = Math.min(...p.stores.map(s => Number(s.price)));
+      const priceOk = minPrice <= priceMax;
+      return catOk && offerOk && kwOk && priceOk;
+    });
+  };
 
-        priceRange.addEventListener('input', function() {
-            currentPrice.textContent = this.value;
-        });
+  const safeImg = (src, seed) =>
+    `<img src="${src}" alt="" loading="lazy" onerror="this.onerror=null;this.src='https://picsum.photos/seed/${encodeURIComponent(seed)}/300/200';"/>`;
 
-//3. Accordon 
-var acc = document.getElementsByClassName("ac-Catergories");
-var i;
-
-for (i = 0; i < acc.length; i++) {
-  acc[i].addEventListener("click", function() {
-    /* Toggle between adding and removing the "active" class,
-    to highlight the button that controls the panel */
-    this.classList.toggle("active");
-
-    /* Toggle between hiding and showing the active panel */
-    var panel = this.nextElementSibling;
-    if (panel.style.display === "block") {
-      panel.style.display = "none";
+  // Toggle watchlist
+  const toggleLike = productId => {
+    const index = WATCHLIST.indexOf(productId);
+    if (index === -1) {
+      WATCHLIST.push(productId);
     } else {
-      panel.style.display = "block";
+      WATCHLIST.splice(index, 1);
     }
+    localStorage.setItem("watchlist", JSON.stringify(WATCHLIST));
+    render(); // re-render to update button state
+  };
+
+  // Product card HTML
+  const cardHTML = item => {
+    const badge = item.special ? `<span class="badge" data-type="${item.special.type}">${item.special.type}</span>` : "";
+    const liked = WATCHLIST.includes(item.id);
+    const likeBtn = `<span class="like-btn ${liked ? "active" : ""}" onclick="toggleLike('${item.id}')">❤</span>`;
+
+    const formatDate = ts => {
+      if (!ts) return "";
+      // try ISO or epoch (ms) or epoch (s)
+      let d = new Date(ts);
+      if (isNaN(d)) {
+        // try numeric
+        const n = Number(ts);
+        if (!isNaN(n)) d = new Date(n > 1e12 ? n : n * 1000);
+      }
+      if (isNaN(d)) return "";
+      return d.toLocaleString();
+    };
+
+    const rows = item.stores.map(s => {
+      // price display
+      const hasOriginal = typeof s.original_price === "number" && s.original_price > s.price;
+      const right = hasOriginal
+        ? `<span><span class="original">$${s.original_price.toFixed(2)}</span>$${Number(s.price).toFixed(2)}</span>`
+        : `<span>$${Number(s.price).toFixed(2)}</span>`;
+
+      // prefer jobNumber over jobId when present on store-level metadata
+      const jobLabel = s.jobNumber ? `Job #${s.jobNumber}` : (s.jobId ? `Job ${s.jobId}` : "");
+      const lastUpdated = s.lastUpdatedAt || s.last_updated_at || s.updatedAt || s.updated_at || null;
+      const lastStr = lastUpdated ? `<small class="meta">Updated: ${formatDate(lastUpdated)}</small>` : "";
+      const jobStr = jobLabel ? `<small class="meta">${jobLabel}</small>` : "";
+
+      const meta = (jobStr || lastStr) ? `<div class="meta-row">${jobStr} ${lastStr}</div>` : "";
+
+      return `<div><span>${s.brand}</span>${right}${meta}</div>`;
+    }).join("");
+
+    const desc = item.description ? `<div class="desc">${item.description}</div>` : "";
+
+    return `
+      <article class="card">
+        <div class="media">
+          ${badge}
+          ${safeImg(item.image || "", item.id)}
+          ${likeBtn}
+        </div>
+        <h3>${item.name}</h3>
+        ${desc}
+        <div class="price-list">${rows}</div>
+      </article>
+    `;
+  };
+
+  const render = () => {
+    const data = getFiltered();
+    const start = (currentPage - 1) * PER_PAGE;
+    const end = start + PER_PAGE;
+    gallery.innerHTML = data.slice(start, end).map(cardHTML).join("");
+    renderPager(data.length);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const renderPager = total => {
+    pager.innerHTML = "";
+    const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+
+    const makeBtn = (label, on, opts = {}) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if (opts.disabled) b.disabled = true;
+      if (opts.active) b.classList.add("active");
+      b.addEventListener("click", on);
+      pager.appendChild(b);
+    };
+
+    makeBtn("«", () => { currentPage = 1; render(); }, { disabled: currentPage === 1 });
+    makeBtn("‹", () => { currentPage = Math.max(1, currentPage - 1); render(); }, { disabled: currentPage === 1 });
+
+    for (let p = 1; p <= totalPages; p++) {
+      makeBtn(String(p), () => { currentPage = p; render(); }, { active: p === currentPage });
+    }
+
+    makeBtn("›", () => { currentPage = Math.min(totalPages, currentPage + 1); render(); }, { disabled: currentPage === totalPages });
+    makeBtn("»", () => { currentPage = totalPages; render(); }, { disabled: currentPage === totalPages });
+  };
+
+  // ===== 4) Events =====
+  document.querySelectorAll(".valuesButton[data-filter]").forEach(btn => {
+    btn.addEventListener("click", () => { activeCategory = btn.dataset.filter; currentPage = 1; render(); });
   });
-}
+  document.querySelectorAll(".valuesButton[data-offer]").forEach(btn => {
+    btn.addEventListener("click", () => { activeOffer = btn.dataset.offer; currentPage = 1; render(); });
+  });
+  if (searchInput) {
+    searchInput.addEventListener("input", () => { keyword = searchInput.value || ""; currentPage = 1; render(); });
+  }
+  if (priceRange && currentPrice) {
+    currentPrice.textContent = priceRange.value;
+    priceRange.addEventListener("input", function () { currentPrice.textContent = this.value; currentPage = 1; render(); });
+  }
+  // collapse/expand filter sections
+  document.querySelectorAll(".filter-section h3").forEach(title => {
+    title.addEventListener("click", () => {
+      const panel = title.nextElementSibling;
+      panel.classList.toggle("open");
+      panel.style.display = panel.classList.contains("open") ? "block" : "none";
+    });
+  });
+
+  // ===== 5) Initial load and render =====
+  loadProducts();
+
+  // Expose toggleLike to global scope (needed for onclick in HTML)
+  window.toggleLike = toggleLike;
+});
