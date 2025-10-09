@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant Here</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/auth.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
+
+<body>
+  <!-- Global site header (reused across all pages) -->
+  <div data-include="components/header.html"></div>
+
+     <main class="main">
+      <div class="chat-container">
+        <textarea id="Input-AI" class="chat-input" placeholder="Can we help with your grocery today?" rows="5"></textarea>
+        <button type="submit" class="chat-send-button">Send</button>
+      </div>
+    </main>
+    
+    <div data-include="components/footer.html"></div>
+    <script src="js/include.js" defer></script>
+    <script src="js/main.js" defer></script> 
+    <script src="js/product_page.js" defer></script>
+</body>
+</html>
