@@ -13,7 +13,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-
     # --- Base ---
     APP_ENV: str = Field(default="dev", description="dev|staging|prod")
     PROJECT_NAME: str = "UrSaviour"

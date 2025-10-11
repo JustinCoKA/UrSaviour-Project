@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UrSaviour - Products (Debug)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .debug-panel {
+      background: #f0f0f0;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .debug-log {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .debug-log div {
+      margin: 2px 0;
+    }
+    .error { color: red; }
+    .success { color: green; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <main class="product-page">
+    <div class="debug-panel">
+      <h3>🐛 API Debug Panel</h3>
+      <div>Status: <span id="api-status">Testing...</span></div>
+      <div>Products Count: <span id="product-count">-</span></div>
+      <div>Data Source: <span id="data-source">-</span></div>
+      <div class="debug-log" id="debug-log"></div>
+    </div>
+
+    <!-- Search Bar (wide) -->
+    <div id="searching-bar" class="searching-bar">
+      <input id="searchInput" type="text" placeholder="🔍 Search products or categories"/>
+    </div>
+
+    <div class="product-layout">
+      <!-- Product Gallery -->
+      <section class="product-gallery-section">
+        <div id="product-gallery" class="product-gallery">
+          <!-- Products loaded via JS -->
+        </div>
+        <div id="pagination" class="pagination">
+          <!-- Pagination -->
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script>
+    // Debug logging
+    const debugLog = document.getElementById('debug-log');
+    const apiStatus = document.getElementById('api-status');
+    const productCount = document.getElementById('product-count');
+    const dataSource = document.getElementById('data-source');
+
+    function debugInfo(msg, className = 'info') {
+      console.log(msg);
+      const div = document.createElement('div');
+      div.className = className;
+      div.textContent = new Date().toLocaleTimeString() + ': ' + msg;
+      debugLog.appendChild(div);
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+
+    function updateStatus(status, count = '-', source = '-') {
+      apiStatus.textContent = status;
+      productCount.textContent = count;
+      dataSource.textContent = source;
+    }
+
+    // Test API integration
+    async function testAPI() {
+      try {
+        debugInfo('=== Starting API Test ===');
+        updateStatus('Testing API...');
+
+        const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname) || window.location.protocol === 'file:';
+        const API_BASE = isLocal ? "http://localhost:8000" : window.location.origin;
+        const url = `${API_BASE}/api/v1/products/products?limit=100`;
+        
+        debugInfo(`isLocal: ${isLocal}`);
+        debugInfo(`API_BASE: ${API_BASE}`);
+        debugInfo(`URL: ${url}`);
+        
+        debugInfo('Making fetch request...');
+        const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+        
+        debugInfo(`Response status: ${res.status} ${res.statusText}`, res.ok ? 'success' : 'error');
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        debugInfo(`JSON parsed: ${Array.isArray(data) ? data.length : 'not array'} items`, 'success');
+        
+        if (Array.isArray(data)) {
+          updateStatus('API Success!', data.length, 'Live API');
+          debugInfo(`Sample product: ${JSON.stringify(data[0], null, 2)}`, 'success');
+          
+          // Render products
+          const gallery = document.getElementById('product-gallery');
+          if (gallery) {
+            gallery.innerHTML = data.map(product => `
+              <div class="product-card">
+                <h3>${product.name || 'Unnamed Product'}</h3>
+                <p>Category: ${product.category || 'Unknown'}</p>
+                <p>Stores: ${product.stores ? product.stores.length : 0}</p>
+                <p>ID: ${product.id}</p>
+              </div>
+            `).join('');
+            debugInfo(`Rendered ${data.length} products to gallery`, 'success');
+          }
+        } else {
+          debugInfo('Invalid response format: not an array', 'error');
+          updateStatus('API Error', '-', 'Invalid format');
+        }
+        
+      } catch (err) {
+        debugInfo(`ERROR: ${err.name}: ${err.message}`, 'error');
+        updateStatus('API Failed', '-', 'Error');
+        
+        // Try fallback
+        debugInfo('Attempting static fallback...', 'info');
+        const staticProducts = [
+          {id: "STATIC1", name: "Static Test Product 1", category: "Test", stores: []},
+          {id: "STATIC2", name: "Static Test Product 2", category: "Test", stores: []}
+        ];
+        
+        const gallery = document.getElementById('product-gallery');
+        if (gallery) {
+          gallery.innerHTML = staticProducts.map(product => `
+            <div class="product-card">
+              <h3>${product.name} (STATIC)</h3>
+              <p>Category: ${product.category}</p>
+              <p>This is fallback static data</p>
+            </div>
+          `).join('');
+          updateStatus('Using Fallback', staticProducts.length, 'Static Data');
+          debugInfo(`Rendered ${staticProducts.length} static fallback products`, 'info');
+        }
+      }
+    }
+
+    // Run test when page loads
+    document.addEventListener('DOMContentLoaded', testAPI);
+  </script>
+</body>
+</html>

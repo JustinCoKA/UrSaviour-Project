@@ -227,6 +227,15 @@ def upsert_offering(db: Session, d: Dict, store_id: int) -> int:
         "basePrice": d.get("basePrice"),
         "offerDetails": d.get("offerDetails"),
     }
+    # If the storeOfferings table has a lastUpdatedAt / updated_at column, set it to now
+    if _col(t, "lastUpdatedAt") is not None:
+        from datetime import datetime
+
+        vals["lastUpdatedAt"] = datetime.utcnow()
+    elif _col(t, "updated_at") is not None:
+        from datetime import datetime
+
+        vals["updated_at"] = datetime.utcnow()
 
     if existing_id is not None:
         db.execute(update(t).where(id_col == existing_id).values(vals))
@@ -331,33 +340,43 @@ def run_full_etl(prefix: str) -> Dict:
             except Exception:
                 db.rollback()
 
-            total_extracted = 0
+            total_processed = 0
             total_loaded = 0
+            total_failed = 0
 
             for o in keys:
                 key = o["Key"]
                 file_count = 0
                 file_failed = 0
                 try:
-                    for row in fetch_csv_rows(key):
-                        try:
-                            d = map_row(row)
-                            # Only consider rows with a positive discount rate
-                            if d.get("rate", 0.0) <= 0.0:
-                                # skip non-discounted items
-                                continue
-                            sid = upsert_store(db, d["storeName"])
-                            # upsert product (may create product record and persist basePrice)
-                            upsert_product(db, {**d, "sku": d.get("productId"), "name": d.get("productId")})
-                            upsert_offering(db, d, sid)
-                            file_count += 1
-                            total_loaded += 1
-                        except Exception:
-                            # per-row failure should not stop the file; record and continue
-                            file_failed += 1
-                    total_extracted += file_count
-                    log(db, key, "success", f"rows={file_count}, failed={file_failed}", job_id=job_id)
-                    db.commit()
+                        for row in fetch_csv_rows(key):
+                            total_processed += 1
+                            try:
+                                d = map_row(row)
+                                # Only consider rows with a positive discount rate
+                                if d.get("rate", 0.0) <= 0.0:
+                                    # skip non-discounted items, count as processed but not loaded
+                                    continue
+                                sid = upsert_store(db, d["storeName"])
+                                # upsert product (may create product record and persist basePrice)
+                                upsert_product(db, {**d, "sku": d.get("productId"), "name": d.get("productId")})
+                                upsert_offering(db, d, sid)
+                                file_count += 1
+                                total_loaded += 1
+                            except Exception as e:
+                                # per-row failure should not stop the file; record and continue
+                                file_failed += 1
+                                total_failed += 1
+                                # Log the row-level exception into ETL logs for diagnostics
+                                try:
+                                    log(db, key, "row-failed", f"row_error: {str(e)}", job_id=job_id)
+                                    db.commit()
+                                except Exception:
+                                    db.rollback()
+                        # aggregate processed count (including skipped non-discounted rows)
+                        log_msg = f"processed={total_processed}, loaded={file_count}, failed={file_failed}"
+                        log(db, key, "success" if file_failed == 0 else "partial", log_msg, job_id=job_id)
+                        db.commit()
                 except Exception as e:
                     db.rollback()
                     log(db, key, "failed", str(e), job_id=job_id)
@@ -368,12 +387,15 @@ def run_full_etl(prefix: str) -> Dict:
             if job_id is not None:
                 upd: Dict = {}
                 from datetime import datetime
+                # Overall status depends on whether we loaded any rows
                 if _col(ETLJobs, "overallStatus") is not None:
-                    upd["overallStatus"] = "success"
-                if _col(ETLJobs, "totalItemExtracted") is not None:
-                    upd["totalItemExtracted"] = total_extracted
+                    upd["overallStatus"] = "success" if total_loaded > 0 else "failed"
+                if _col(ETLJobs, "totalItemProcessed") is not None:
+                    upd["totalItemProcessed"] = total_processed
                 if _col(ETLJobs, "totalItemLoaded") is not None:
                     upd["totalItemLoaded"] = total_loaded
+                if _col(ETLJobs, "totalItemFailed") is not None:
+                    upd["totalItemFailed"] = total_failed
                 if _col(ETLJobs, "endTime") is not None:
                     upd["endTime"] = datetime.utcnow()
                 if upd:

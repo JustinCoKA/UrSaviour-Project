@@ -1,110 +1,109 @@
 /* products.js
- * Data source: foundational_dataset_v1.csv (100 products x 4 stores)
- * Weekly specials: no.27week_special.pdf (30 matched discounts)
- * - Each product has 4 store rows (brand + price)
- * - If a weekly special matches (product_name + store), we:
- *    1) Show a badge (Half Price / 30% OFF / 10% OFF / Big deal)
- *    2) Replace that store's price with final price and keep original_price (strike-through)
- * - 4-column grid, filters open by default, collapsible by clicking section titles
- * - Wide search bar
- * - Watchlist: like button per product (saved in localStorage for now)
+ * - Loads up to 100 products from /api/v1/products/products
+ * - Falls back to STATIC_PRODUCTS if API fails (optional)
+ * - 4-col grid, open-by-default filters, collapsible sections
+ * - Wide search, watchlist in localStorage
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // ===== 0) Products from API =====
-  let PRODUCTS = []; // Will be loaded from API
+  // ===== 0) Config & State =====
+  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname) || window.location.protocol === 'file:';
+  // In production use same origin; in local/dev prefer explicit localhost:8000
+  const API_BASE = isLocal ? "http://localhost:8000" : window.location.origin;
+  const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
+
+  let PRODUCTS = [];                  // populated by API or fallback
+  const PER_PAGE = 20;                // 4 × 5
+  let currentPage = 1;
+  let activeCategory = "all";
+  let activeOffer = "all";
+  let keyword = "";
   let isLoading = true;
   let loadError = null;
 
-  // API configuration
-  const API_BASE = window.location.origin.includes('localhost:') ? 'http://localhost:8000' : '';
-  const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
+  // Watchlist (persisted)
+  let WATCHLIST = JSON.parse(localStorage.getItem("watchlist") || "[]");
 
-  // Load products from backend API
-  async function loadProducts() {
-    try {
-      isLoading = true;
-      loadError = null;
-      showLoading();
-      
-      console.log('Loading products from:', `${PRODUCTS_ENDPOINT}?limit=100`);
-      const response = await fetch(`${PRODUCTS_ENDPOINT}?limit=100`);
-      console.log('API Response status:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load products: ${response.status} ${response.statusText}`);
-      }
-      
-      PRODUCTS = await response.json();
-      console.log(`Loaded ${PRODUCTS.length} products from API`);
-      
-      isLoading = false;
-      render();
-    } catch (error) {
-      console.error('Failed to load products:', error);
-      isLoading = false;
-      loadError = error.message;
-      showError(error.message);
-    }
-  }
+  // ===== 1) DOM =====
+  const gallery = document.getElementById("product-gallery");
+  const pager = document.getElementById("pagination");
+  const priceRange = document.getElementById("priceRange");
+  const currentPrice = document.getElementById("currentPrice");
+  const searchInput = document.getElementById("searchInput");
 
-  // Show loading state
+  // ===== 2) Utils =====
   function showLoading() {
-    const gallery = document.getElementById("product-gallery");
-    if (gallery) {
-      gallery.innerHTML = `
-        <div class="loading-state" style="
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 200px;
-          font-size: 1.2em;
-          color: #666;
-          grid-column: 1 / -1;
-        ">
-          <div>
-            <div style="margin-bottom: 10px;">Loading products...</div>
-            <div style="font-size: 0.9em;">🔄</div>
-          </div>
+    if (!gallery) return;
+    gallery.innerHTML = `
+      <div class="loading-state" style="
+        display:flex;justify-content:center;align-items:center;
+        height:200px;font-size:1.2em;color:#666;grid-column:1 / -1;">
+        <div>
+          <div style="margin-bottom:10px;">Loading products...</div>
+          <div style="font-size:.9em;">🔄</div>
         </div>
-      `;
-    }
+      </div>`;
   }
 
-  // Show error state
+  function showBanner(message, level = "warn") {
+    try {
+      const root = document.querySelector('.product-page') || document.body;
+      let el = document.getElementById('product-api-banner');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'product-api-banner';
+        el.style.position = 'sticky';
+        el.style.top = '0';
+        el.style.zIndex = '9999';
+        el.style.padding = '10px 16px';
+        el.style.textAlign = 'center';
+        el.style.fontWeight = '600';
+        el.style.fontSize = '0.95rem';
+        el.style.borderBottom = '1px solid rgba(0,0,0,0.05)';
+        root.insertBefore(el, root.firstChild);
+      }
+      if (level === 'error') {
+        el.style.background = '#ffecec';
+        el.style.color = '#a94442';
+      } else {
+        el.style.background = '#fff8e1';
+        el.style.color = '#6a5800';
+      }
+      el.textContent = message;
+    } catch (e) { /* ignore banner errors */ }
+  }
+
   function showError(message) {
-    const gallery = document.getElementById("product-gallery");
-    if (gallery) {
-      gallery.innerHTML = `
-        <div class="error-state" style="
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          height: 200px;
-          color: #d32f2f;
-          background: #ffebee;
-          border: 1px solid #ffcdd2;
-          border-radius: 8px;
-          padding: 20px;
-          grid-column: 1 / -1;
-        ">
-          <div style="font-size: 1.2em; margin-bottom: 10px;">❌ Failed to load products</div>
-          <div style="margin-bottom: 15px; text-align: center;">${message}</div>
-          <button onclick="window.location.reload()" style="
-            background: #d32f2f;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-          ">Retry</button>
-        </div>
-      `;
-    }
+    if (!gallery) return;
+    gallery.innerHTML = `
+      <div class="error-state" style="
+        display:flex;flex-direction:column;justify-content:center;align-items:center;
+        height:200px;color:#d32f2f;background:#ffebee;border:1px solid #ffcdd2;
+        border-radius:8px;padding:20px;grid-column:1 / -1;">
+        <div style="font-size:1.2em;margin-bottom:10px;">❌ Failed to load products</div>
+        <div style="margin-bottom:15px;text-align:center;">${message}</div>
+        <button type="button" onclick="window.location.reload()" style="
+          background:#d32f2f;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;">
+          Retry
+        </button>
+      </div>`;
   }
 
-  // Static fallback removed - now using API data
+  const safeImg = (src, seed) =>
+    `<img src="${src || ""}" alt="" loading="lazy" 
+    onerror="this.onerror=null;this.src='https://picsum.photos/seed/${encodeURIComponent(seed)}/300/200';"/>`;
+
+  const formatDate = (ts) => {
+    if (!ts) return "";
+    let d = new Date(ts);
+    if (isNaN(d)) {
+      const n = Number(ts);
+      if (!isNaN(n)) d = new Date(n > 1e12 ? n : n * 1000);
+    }
+    return isNaN(d) ? "" : d.toLocaleString();
+  };
+
+  // ===== 3) Data =====
   const STATIC_PRODUCTS = [
   {
     "id": "P0001",
@@ -1445,87 +1444,205 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ]; // End of static fallback data (not used anymore)
 
- // ===== 1) State =====
-  const PER_PAGE = 20;  // 4 columns × 5 rows
-  let currentPage = 1;
-  let activeCategory = "all";
-  let activeOffer = "all";
-  let keyword = "";
+  async function loadProducts() {
+    try {
+      isLoading = true; loadError = null; showLoading();
+      const url = `${PRODUCTS_ENDPOINT}?limit=100`;
+      console.log("[Products] GET:", url, "isLocal=", isLocal);
+      showBanner(`Loading products from ${url} ...`, 'info');
 
-  // Watchlist (saved in localStorage for persistence)
-  let WATCHLIST = JSON.parse(localStorage.getItem("watchlist") || "[]");
+      // Try primary fetch
+      let res;
+      try {
+        console.log('[Products] Attempting primary fetch with options:', { cache: 'no-store', mode: 'cors' });
+        res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+        console.log('[Products] Primary fetch response received:', res ? 'Success' : 'Null');
+      } catch (e) {
+        console.warn('[Products] primary fetch failed:', e.name, e.message);
+        console.warn('[Products] Full error object:', e);
+        res = null;
+      }
 
-  // ===== 2) DOM =====
-  const gallery = document.getElementById("product-gallery");
-  const pager = document.getElementById("pagination");
-  const priceRange = document.getElementById("priceRange");
-  const currentPrice = document.getElementById("currentPrice");
-  const searchInput = document.getElementById("searchInput");
+      // If primary failed and we are local, try 127.0.0.1 as some Docker/hosts setups prefer that
+      if ((!res || !res.ok) && isLocal) {
+        const altUrl = url.replace('localhost', '127.0.0.1');
+        console.info('[Products] attempting fallback fetch to', altUrl);
+        try {
+          res = await fetch(altUrl, { cache: 'no-store', mode: 'cors' });
+          if (res && res.ok) {
+            console.info('[Products] fallback to 127.0.0.1 succeeded');
+          } else {
+            console.warn('[Products] fallback response status:', res ? res.status : 'null');
+          }
+        } catch (e) {
+          console.warn('[Products] fallback fetch failed:', e.name, e.message);
+          console.warn('[Products] Fallback error object:', e);
+          res = null;
+        }
+      }
 
-  // ===== 3) Helpers =====
-  const getFiltered = () => {
+      if (!res) throw new Error('No response from API (network error)');
+      console.log('API Response:', res.status, res.statusText);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+
+      let data;
+      try {
+        data = await res.json();
+      console.log('[Products] Raw API data received:', data);
+      console.log('[Products] Data type:', typeof data, 'isArray:', Array.isArray(data), 'length:', data?.length);
+      
+      // Show API success in UI immediately
+      showBanner(`🟢 API SUCCESS: Received ${data?.length || 0} products from backend`, 'info');
+      
+      if (!Array.isArray(data)) throw new Error("Malformed payload: expected an array");
+      
+      console.log('[Products] Calling normalizeProducts with', data.length, 'items');
+      PRODUCTS = normalizeProducts(data);
+      console.log('[Products] After normalizeProducts - PRODUCTS length:', PRODUCTS.length);
+      console.log('[Products] Normalized PRODUCTS sample:', PRODUCTS[0]);
+      
+      // Show normalization result
+      showBanner(`🔧 NORMALIZED: ${PRODUCTS.length} valid products after processing`, 'info');
+      
+      isLoading = false;
+      console.log('[Products] Calling render()');
+      render();
+      console.log('[Products] Render complete, showing success banner');
+      // Clear any banner after successful load
+      showBanner(`✅ LOADED: ${PRODUCTS.length} products from API displayed successfully`, 'success');
+      
+      } catch (processingError) {
+        console.error('[Products] Error during data processing:', processingError);
+        showBanner(`🚨 PROCESSING ERROR: ${processingError.message}`, 'error');
+        throw processingError; // Re-throw to trigger main catch block
+      }
+    } catch (err) {
+      console.error("[Products] Failed to load products from API:", err);
+      console.error("[Products] Error details - name:", err.name, "message:", err.message);
+      console.log("[Products] Current isLocal value:", isLocal);
+      console.log("[Products] Current hostname:", window.location.hostname);
+      console.log("[Products] Current protocol:", window.location.protocol);
+      
+      // Only use STATIC_PRODUCTS as a developer fallback when running locally
+      if (isLocal) {
+        const fallback = window.STATIC_PRODUCTS || (typeof STATIC_PRODUCTS !== "undefined" ? STATIC_PRODUCTS : []);
+        console.log("[Products] Checking fallback - available:", Array.isArray(fallback), "length:", fallback?.length || 0);
+        if (Array.isArray(fallback) && fallback.length) {
+          console.warn("[Products] Using STATIC_PRODUCTS fallback (local dev) - " + fallback.length + " products");
+          showBanner('API unreachable — using local static products (check backend at http://localhost:8000)', 'error');
+          PRODUCTS = normalizeProducts(fallback);
+          isLoading = false;
+          render();
+          return;
+        } else {
+          console.error("[Products] No static fallback available or fallback is empty");
+        }
+      } else {
+        console.log("[Products] Not local environment, no fallback allowed");
+      }
+
+      // In production or when no fallback exists, show an error with a helpful hint
+      isLoading = false;
+      loadError = err.message || "Unknown error";
+      const hint = 'If backend runs in Docker, ensure port 8000 is reachable from this browser and CORS allows this origin.';
+      console.info(hint);
+      showBanner(`Products API error: ${loadError} — ${hint}`,'error');
+      showError(loadError);
+    }
+  }
+
+  function normalizeProducts(list) {
+    console.log('[Normalize] Input list length:', list?.length);
+    // Ensure minimal shape consistency
+    const result = list.map((p, idx) => {
+      console.log(`[Normalize] Processing product ${idx}:`, p.id, p.name);
+      
+      const processedStores = Array.isArray(p.stores) ? p.stores.map((s, storeIdx) => {
+        console.log(`[Normalize] Processing store ${storeIdx}:`, s.brand, 'price:', s.price, 'type:', typeof s.price);
+        const processed = {
+          brand: s.brand || "Unknown",
+          price: Number(s.price ?? NaN),
+          original_price: typeof s.original_price === "number" ? s.original_price : undefined,
+          jobNumber: s.jobNumber,
+          jobId: s.jobId,
+          lastUpdatedAt: s.lastUpdatedAt || s.last_updated_at || s.updatedAt || s.updated_at || null
+        };
+        console.log(`[Normalize] Store processed - price is finite:`, Number.isFinite(processed.price));
+        return processed;
+      }).filter(s => {
+        const isValid = Number.isFinite(s.price);
+        if (!isValid) console.warn('[Normalize] Filtering out store with invalid price:', s);
+        return isValid;
+      }) : [];
+      
+      const normalizedProduct = {
+        id: p.id || cryptoRandomId(),
+        name: String(p.name || "Unnamed"),
+        category: p.category || "Other",
+        description: p.description || "",
+        image: p.image || "",
+        special: p.special || null,
+        stores: processedStores
+      };
+      
+      console.log(`[Normalize] Product ${idx} final stores count:`, normalizedProduct.stores.length);
+      return normalizedProduct;
+    });
+    
+    const filtered = result.filter(p => {
+      const hasStores = p.stores.length > 0;
+      if (!hasStores) console.warn('[Normalize] Filtering out product with no valid stores:', p.id, p.name);
+      return hasStores;
+    });
+    
+    console.log('[Normalize] Final result length:', filtered.length);
+    return filtered;
+  }
+
+  function cryptoRandomId() {
+    try {
+      const r = crypto.getRandomValues(new Uint32Array(2));
+      return `G_${r[0].toString(16)}${r[1].toString(16)}`;
+    } catch { return `G_${Math.random().toString(16).slice(2)}`; }
+  }
+
+  // ===== 4) Filters & Rendering =====
+  function getFiltered() {
     const priceMax = priceRange ? Number(priceRange.value) : Infinity;
     return PRODUCTS.filter(p => {
       const catOk = activeCategory === "all" || p.category === activeCategory;
       const offerOk = activeOffer === "all" || (p.special && p.special.type === activeOffer);
-      const kw = keyword.trim().toLowerCase();
-      const kwOk = !kw || p.name.toLowerCase().includes(kw) || (p.category && p.category.toLowerCase().includes(kw));
+      const kw = (keyword || "").trim().toLowerCase();
+      const kwOk = !kw || p.name.toLowerCase().includes(kw) || (p.category || "").toLowerCase().includes(kw);
       const minPrice = Math.min(...p.stores.map(s => Number(s.price)));
-      const priceOk = minPrice <= priceMax;
+      const priceOk = Number.isFinite(minPrice) ? minPrice <= priceMax : true;
       return catOk && offerOk && kwOk && priceOk;
     });
-  };
+  }
 
-  const safeImg = (src, seed) =>
-    `<img src="${src}" alt="" loading="lazy" onerror="this.onerror=null;this.src='https://picsum.photos/seed/${encodeURIComponent(seed)}/300/200';"/>`;
-
-  // Toggle watchlist
-  const toggleLike = productId => {
-    const index = WATCHLIST.indexOf(productId);
-    if (index === -1) {
-      WATCHLIST.push(productId);
-    } else {
-      WATCHLIST.splice(index, 1);
-    }
-    localStorage.setItem("watchlist", JSON.stringify(WATCHLIST));
-    render(); // re-render to update button state
-  };
-
-  // Product card HTML
-  const cardHTML = item => {
+  function cardHTML(item) {
     const badge = item.special ? `<span class="badge" data-type="${item.special.type}">${item.special.type}</span>` : "";
     const liked = WATCHLIST.includes(item.id);
-    const likeBtn = `<span class="like-btn ${liked ? "active" : ""}" onclick="toggleLike('${item.id}')">❤</span>`;
-
-    const formatDate = ts => {
-      if (!ts) return "";
-      // try ISO or epoch (ms) or epoch (s)
-      let d = new Date(ts);
-      if (isNaN(d)) {
-        // try numeric
-        const n = Number(ts);
-        if (!isNaN(n)) d = new Date(n > 1e12 ? n : n * 1000);
-      }
-      if (isNaN(d)) return "";
-      return d.toLocaleString();
-    };
+    const likeBtn = `<button class="like-btn ${liked ? "active" : ""}" aria-label="Add to watchlist"
+                      onclick="toggleLike('${item.id}')">❤</button>`;
 
     const rows = item.stores.map(s => {
-      // price display
       const hasOriginal = typeof s.original_price === "number" && s.original_price > s.price;
-      const right = hasOriginal
-        ? `<span><span class="original">$${s.original_price.toFixed(2)}</span>$${Number(s.price).toFixed(2)}</span>`
-        : `<span>$${Number(s.price).toFixed(2)}</span>`;
+      const originalHtml = hasOriginal ? `<span class="original-price">$${s.original_price.toFixed(2)}</span>` : "";
+      const currentHtml = `<span class="current-price">$${Number(s.price).toFixed(2)}</span>`;
 
-      // prefer jobNumber over jobId when present on store-level metadata
       const jobLabel = s.jobNumber ? `Job #${s.jobNumber}` : (s.jobId ? `Job ${s.jobId}` : "");
-      const lastUpdated = s.lastUpdatedAt || s.last_updated_at || s.updatedAt || s.updated_at || null;
-      const lastStr = lastUpdated ? `<small class="meta">Updated: ${formatDate(lastUpdated)}</small>` : "";
+      const lastStr = s.lastUpdatedAt ? `<small class="meta">Updated: ${formatDate(s.lastUpdatedAt)}</small>` : "";
       const jobStr = jobLabel ? `<small class="meta">${jobLabel}</small>` : "";
-
       const meta = (jobStr || lastStr) ? `<div class="meta-row">${jobStr} ${lastStr}</div>` : "";
 
-      return `<div><span>${s.brand}</span>${right}${meta}</div>`;
+      return `
+        <div class="price-row">
+          <div class="left"><span class="brand">${s.brand}</span>${originalHtml}</div>
+          ${currentHtml}
+        </div>
+        ${meta}
+      `;
     }).join("");
 
     const desc = item.description ? `<div class="desc">${item.description}</div>` : "";
@@ -1534,34 +1651,26 @@ document.addEventListener("DOMContentLoaded", () => {
       <article class="card">
         <div class="media">
           ${badge}
-          ${safeImg(item.image || "", item.id)}
+          ${safeImg(item.image, item.id)}
           ${likeBtn}
         </div>
         <h3>${item.name}</h3>
         ${desc}
         <div class="price-list">${rows}</div>
-      </article>
-    `;
-  };
+      </article>`;
+  }
 
-  const render = () => {
-    const data = getFiltered();
-    const start = (currentPage - 1) * PER_PAGE;
-    const end = start + PER_PAGE;
-    gallery.innerHTML = data.slice(start, end).map(cardHTML).join("");
-    renderPager(data.length);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const renderPager = total => {
+  function renderPager(total) {
+    if (!pager) return;
     pager.innerHTML = "";
     const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
-    const makeBtn = (label, on, opts = {}) => {
+    const makeBtn = (label, on, { disabled=false, active=false } = {}) => {
       const b = document.createElement("button");
+      b.type = "button";
       b.textContent = label;
-      if (opts.disabled) b.disabled = true;
-      if (opts.active) b.classList.add("active");
+      if (disabled) b.disabled = true;
+      if (active) b.classList.add("active");
       b.addEventListener("click", on);
       pager.appendChild(b);
     };
@@ -1575,34 +1684,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
     makeBtn("›", () => { currentPage = Math.min(totalPages, currentPage + 1); render(); }, { disabled: currentPage === totalPages });
     makeBtn("»", () => { currentPage = totalPages; render(); }, { disabled: currentPage === totalPages });
-  };
+  }
 
-  // ===== 4) Events =====
+  function render() {
+    console.log('[Render] Starting render(), PRODUCTS.length:', PRODUCTS.length);
+    const data = getFiltered();
+    console.log('[Render] After getFiltered(), filtered data length:', data.length);
+    if (gallery) {
+      const start = (currentPage - 1) * PER_PAGE;
+      const end = start + PER_PAGE;
+      const pageData = data.slice(start, end);
+      console.log('[Render] Rendering page', currentPage, 'items', start, 'to', end, '- showing', pageData.length, 'products');
+      gallery.innerHTML = pageData.map(cardHTML).join("");
+      console.log('[Render] Gallery updated with', pageData.length, 'product cards');
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      console.warn('[Render] Gallery element not found!');
+    }
+    renderPager(data.length);
+    console.log('[Render] Render complete');
+  }
+
+  // ===== 5) Events =====
   document.querySelectorAll(".valuesButton[data-filter]").forEach(btn => {
     btn.addEventListener("click", () => { activeCategory = btn.dataset.filter; currentPage = 1; render(); });
   });
   document.querySelectorAll(".valuesButton[data-offer]").forEach(btn => {
     btn.addEventListener("click", () => { activeOffer = btn.dataset.offer; currentPage = 1; render(); });
   });
+
   if (searchInput) {
     searchInput.addEventListener("input", () => { keyword = searchInput.value || ""; currentPage = 1; render(); });
   }
   if (priceRange && currentPrice) {
     currentPrice.textContent = priceRange.value;
-    priceRange.addEventListener("input", function () { currentPrice.textContent = this.value; currentPage = 1; render(); });
+    priceRange.addEventListener("input", function () {
+      currentPrice.textContent = this.value;
+      currentPage = 1; render();
+    });
   }
-  // collapse/expand filter sections
+  // collapsible filter sections
   document.querySelectorAll(".filter-section h3").forEach(title => {
     title.addEventListener("click", () => {
       const panel = title.nextElementSibling;
+      if (!panel) return;
       panel.classList.toggle("open");
       panel.style.display = panel.classList.contains("open") ? "block" : "none";
     });
   });
 
-  // ===== 5) Initial load and render =====
-  loadProducts();
+  // ===== 6) Watchlist (global for onclick) =====
+  window.toggleLike = function toggleLike(productId) {
+    const i = WATCHLIST.indexOf(productId);
+    if (i === -1) WATCHLIST.push(productId);
+    else WATCHLIST.splice(i, 1);
+    localStorage.setItem("watchlist", JSON.stringify(WATCHLIST));
+    render();
+  };
 
-  // Expose toggleLike to global scope (needed for onclick in HTML)
-  window.toggleLike = toggleLike;
+  // ===== 7) Go! =====
+  loadProducts();
 });

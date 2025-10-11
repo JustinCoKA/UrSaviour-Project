@@ -460,7 +460,6 @@ main {
   color: #333;
 }
 
-<<<<<<< HEAD
 /* ==========================================================================
    9. Product Page 
    ========================================================================== */
@@ -542,47 +541,38 @@ main {
       margin-left: auto;
       margin-right: auto;
     }
-    .product-container{
-      display: flex; 
-      justify-content: space-between; 
-      align-items: flex-start; 
-=======
-/*9. ========= Products Page ========= */
-
-/* Layout with centered max-width so it doesn't feel edge-to-edge */
-.product-layout{
-  display:flex; align-items:flex-start; gap:32px;
-  width:100%; max-width:1400px; margin:20px auto; padding:0 1rem;
->>>>>>> 8621bf6d59c054f52d20fd8c12841a4aff91489c
-}
-
-<<<<<<< HEAD
-    .active, .accordion:hover {
-      background-color: #f6b28b;
+    /* Products Page layout and filter panel - consolidated and cleaned */
+    /* Layout container that holds filters + product gallery */
+    .product-layout{
+      display:flex;
+      align-items:flex-start;
+      gap:32px;
+      width:100%;
+      max-width:1400px;
+      margin:20px auto;
+      padding:0 1rem;
     }
-    .ac-Catergories::after{
-      content: '+';
-      position: absolute;
-      right: 15px;
-    }
-    .ac-Catergories.active::after{
-      content: '-';
-    }
-=======
-/* Filter panel (aligned under logo area, open by default) */
-.filter-panel{ width:250px; flex-shrink:0; }
-.filter-panel .filter-title{ font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:12px; text-align:left; }
-.filter-panel .filter-section{ margin-bottom:20px; }
-.filter-panel h3{ margin:6px 0; font-size:1.1rem; color:#004d40; cursor:pointer; }
-.filter-panel .panel.open{ display:block; }          /* default open */
-.filter-panel .panel{ display:none; }                /* closed when .open not present */
-.filter-panel .valuesButton{
-  display:inline-block; border-radius:16px; margin:4px 6px 6px 0;
-  background:#f6b28b; border:1px solid #f6b28b; padding:6px 14px; cursor:pointer;
-}
-.filter-panel .valuesButton:hover{ background:#d8a48f; }
->>>>>>> 8621bf6d59c054f52d20fd8c12841a4aff91489c
 
+    /* Filter panel on the left */
+    .filter-panel{
+      width:250px;
+      flex-shrink:0;
+      background: #fff;
+      border-radius:12px;
+      padding:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.04);
+    }
+    .filter-panel .filter-title{ font-family:'Playfair Display',serif; font-size:1.2rem; margin-bottom:12px; text-align:left; color:#0f172a; }
+    .filter-panel .filter-section{ margin-bottom:18px; }
+    .filter-panel h3{ margin:6px 0; font-size:1rem; color:#004d40; cursor:pointer; }
+    .filter-panel .panel.open{ display:block; }
+    .filter-panel .panel{ display:block; } /* keep panels visible by default */
+    .filter-panel .valuesButton{
+      display:inline-block; border-radius:16px; margin:6px 6px 6px 0;
+      background:#fff; border:1px solid #e6e6e6; padding:8px 12px; cursor:pointer; color:#0f172a;
+    }
+    .filter-panel .valuesButton[data-filter="all"]{ background:#004d40; color:#fff; border-color:#004d40; }
+    .filter-panel .valuesButton:hover{ background:#f6b28b; }
 /* 4 columns grid (100 items → 25 rows) */
 .product-gallery{
   display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:auto; gap:20px; flex:1;
@@ -624,6 +614,34 @@ main {
   background-color:rgba(0,77,64,.08);
 }
 .searching-bar input[type="text"]::placeholder{ text-align:center; font-size:16px; color:#444; }
+
+/* Card price area: left = original (strike), right = current price */
+.card .price-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px;
+}
+.card .price-row .left{ display:flex; align-items:center; gap:8px; }
+.card .price-row .original-price{ text-decoration:line-through; color:#64748b; font-size:0.95rem; }
+.card .price-row .current-price{ font-size:1.15rem; font-weight:800; color:#0f172a; }
+
+/* Make badge stand out with slight tilt and shadow */
+.badge{ transform: rotate(-3deg); padding:8px 12px; font-size:0.82rem; }
+
+/* Heart/watchlist button styling */
+.like-btn{ top:12px; right:12px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:rgba(255,255,255,0.9); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.like-btn svg, .like-btn i{ pointer-events:none; }
+
+/* Emphasize discount types with color variants */
+.badge[data-type="Half Price"]{ background:#0369a1; }
+.badge[data-type="30% OFF"]{ background:#059669; }
+.badge[data-type="10% OFF"]{ background:#b45309; }
+.badge[data-type="Big deal"]{ background:#b91c1c; }
+
+/* Small responsive tweak for product grid */
+@media (max-width:680px){
+  .product-gallery{ grid-template-columns:repeat(1,1fr); }
+  .filter-panel{ display:none; }
+  .searching-bar input[type="text"]{ width:95%; }
+}
 
 /* Pagination */
 .pagination{ display:flex; gap:8px; justify-content:center; align-items:center; margin:28px auto 40px; }

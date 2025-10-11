@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug Test</title>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <div id="log"></div>
+    <div id="results"></div>
+
+    <script>
+        const log = document.getElementById('log');
+        const results = document.getElementById('results');
+        
+        function logMessage(msg) {
+            console.log(msg);
+            log.innerHTML += '<div>' + msg + '</div>';
+        }
+
+        async function testAPI() {
+            try {
+                logMessage('=== API Debug Test ===');
+                logMessage('Window location: ' + window.location.href);
+                logMessage('Hostname: ' + window.location.hostname);
+                logMessage('Protocol: ' + window.location.protocol);
+                
+                const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname) || window.location.protocol === 'file:';
+                logMessage('isLocal: ' + isLocal);
+                
+                const API_BASE = isLocal ? "http://localhost:8000" : window.location.origin;
+                const url = `${API_BASE}/api/v1/products/products?limit=100`;
+                logMessage('API URL: ' + url);
+                
+                logMessage('Starting fetch...');
+                const res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+                logMessage('Fetch response received');
+                logMessage('Response status: ' + res.status + ' ' + res.statusText);
+                logMessage('Response ok: ' + res.ok);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                logMessage('JSON parsed successfully');
+                logMessage('Data type: ' + typeof data + ', isArray: ' + Array.isArray(data));
+                logMessage('Data length: ' + (data?.length || 'N/A'));
+                
+                results.innerHTML = '<h2>API Response:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                logMessage('SUCCESS: API call completed successfully!');
+                
+            } catch (err) {
+                logMessage('ERROR: ' + err.name + ': ' + err.message);
+                console.error('Full error:', err);
+            }
+        }
+        
+        // Auto-run test on page load
+        testAPI();
+    </script>
+</body>
+</html>
+</content>
+</invoke>

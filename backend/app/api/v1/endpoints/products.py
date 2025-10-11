@@ -59,7 +59,7 @@ def list_products(q: str | None = Query(None), limit: int = 100, offset: int = 0
             _maybe(_col(Stores, "storeId"), "store_id"),
             _maybe(_col(Stores, "storeName"), "brand")
         ).select_from(Stores)
-        stores = {row.store_id: row.brand for row in db.execute(store_sel).mappings().all()}
+        stores = {row["store_id"]: row["brand"] for row in db.execute(store_sel).mappings().all()}
 
         # Filter to exactly 4 main stores (matching frontend expectations)
         main_store_names = ["Justin Groceries", "Mio Mart", "Austin Fresh", "Aadarsh Deals"]
@@ -74,17 +74,26 @@ def list_products(q: str | None = Query(None), limit: int = 100, offset: int = 0
         if _col(StoreOfferings, "productId") is not None and _col(StoreOfferings, "storeId") is not None:
             offerings_sel = select(
                 _maybe(_col(StoreOfferings, "productId"), "product_id"),
-                _maybe(_col(StoreOfferings, "storeId"), "store_id"),  
+                _maybe(_col(StoreOfferings, "storeId"), "store_id"),
                 _maybe(_col(StoreOfferings, "basePrice"), "base_price"),
-                _maybe(_col(StoreOfferings, "price"), "sale_price"),
-                _maybe(_col(StoreOfferings, "offerDetails"), "offer_type")
+                _maybe(_col(StoreOfferings, "price"), "price"),
+                _maybe(_col(StoreOfferings, "offerDetails"), "offer_details")
             ).select_from(StoreOfferings)
             offerings_cols = [c for c in offerings_sel.selected_columns if c is not None]
-            
+
             if offerings_cols:
                 for row in db.execute(select(*offerings_cols)).mappings().all():
-                    key = (row.get("product_id"), str(row.get("store_id")))  # Convert to string
-                    offerings_data[key] = dict(row)
+                    # Normalize keys and ensure numeric casting
+                    pid = row.get("product_id")
+                    sid = row.get("store_id")
+                    key = (str(pid), str(sid))
+                    offerings_data[key] = {
+                        "product_id": pid,
+                        "store_id": sid,
+                        "base_price": float(row.get("base_price") or 0.0),
+                        "price": float(row.get("price") or 0.0),
+                        "offer_details": row.get("offer_details")
+                    }
 
         # Transform to frontend format
         result = []
@@ -95,41 +104,33 @@ def list_products(q: str | None = Query(None), limit: int = 100, offset: int = 0
             # Create stores array with proper pricing and discounts
             stores_list = []
             for store_id, brand in main_stores.items():
-                # Get base price from product
-                base_price = product_dict.get("base_price") or 10.0
-                
-                # Check for store-specific offerings
+                # Get base price from product (product may have base_price column)
+                base_price = float(product_dict.get("base_price") or 0.0)
+
                 offering = offerings_data.get((product_id, str(store_id)))
-                
-                if offering and offering.get("sale_price"):
-                    # Has discount
-                    original_price = offering.get("base_price") or base_price
-                    discounted_price = offering["sale_price"]
-                    offer_type = offering.get("offer_type", "Special Offer")
-                    
+
+                if offering and offering.get("price") and offering.get("price") > 0:
+                    original_price = offering.get("base_price") or base_price or None
+                    discounted_price = offering.get("price")
+                    offer_type = offering.get("offer_details") or None
+
                     store_data = {
                         "brand": brand,
                         "price": float(discounted_price),
-                        "original_price": float(original_price)
+                        "original_price": float(original_price) if original_price else None
                     }
-                    
-                    # Add special offer info to product if this is the first discount found
-                    if "special" not in product_dict:
-                        product_dict["special"] = {
-                            "type": offer_type,
-                            "store": brand
-                        }
+
+                    if offer_type and "special" not in product_dict:
+                        product_dict["special"] = {"type": offer_type, "store": brand}
                 else:
-                    # No discount, use base price with some variation
-                    price_variations = [0.94, 0.99, 0.73, 0.95]  # Different prices per store
-                    store_index = list(main_stores.keys()).index(store_id)
-                    varied_price = float(base_price) + price_variations[store_index % 4]
-                    
-                    store_data = {
-                        "brand": brand,
-                        "price": varied_price
-                    }
-                
+                    # No offering: fall back to product base_price or small variation
+                    if base_price > 0:
+                        varied_price = base_price
+                    else:
+                        # fallback nominal price to avoid NaN
+                        varied_price = 9.99
+                    store_data = {"brand": brand, "price": float(varied_price), "original_price": None}
+
                 stores_list.append(store_data)
             
             # Format the product for frontend

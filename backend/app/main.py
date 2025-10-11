@@ -10,10 +10,32 @@ from app.api.v1.router import api_router
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
 # Enable CORS (dev: wide open, prod: restrict to your domains)
+# Configure CORS carefully: browsers forbid allow-credentials with allow-origin='*'
+cors_origins = settings.BACKEND_CORS_ORIGINS or ["*"]
+
+# Developer-friendly default origins when wildcard is configured (do not use in prod)
+dev_local_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+
+if len(cors_origins) == 1 and cors_origins[0] == "*":
+    # Expand wildcard in dev to include common local frontend origins. Browsers will
+    # only accept credentials if the Access-Control-Allow-Origin header matches the
+    # request origin exactly, so do NOT set allow_credentials when using '*'.
+    allow_origins = dev_local_origins
+    allow_credentials = False
+else:
+    allow_origins = cors_origins
+    # When origins are explicitly provided, allow credentials by default
+    allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,  # e.g., ["http://localhost:5173"]
-    allow_credentials=True,
+    allow_origins=allow_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
