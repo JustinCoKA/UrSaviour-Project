@@ -45,19 +45,24 @@ class Settings(BaseSettings):
 
     # --- Database ---
     DB_SCHEME: str = "mysql+pymysql"
-    DB_HOST: str = "db"
+    DB_HOST: str = Field(default="db", description="Database host (use RDS endpoint in production)")
     DB_PORT: int = 3306
-    DB_USER: str = "ursaviour"
-    DB_PASSWORD: SecretStr = SecretStr("secret")
-    DB_NAME: str = "ursaviour"
-    DATABASE_URL: Optional[str] = None  # override if provided
+    DB_USER: str = Field(default="ursaviour", description="Database username")
+    DB_PASSWORD: SecretStr = Field(default=SecretStr("secret"), description="Database password")
+    DB_NAME: str = Field(default="ursaviour", description="Database name")
+    DATABASE_URL: Optional[str] = Field(default=None, description="Complete database URL (overrides other DB settings)")
+    
+    # AWS RDS specific settings
+    DB_SSL_MODE: str = Field(default="PREFERRED", description="SSL mode for database connection")
+    DB_CHARSET: str = Field(default="utf8mb4", description="Database charset")
 
     def database_url(self) -> str:
         # Return explicit DATABASE_URL or build from fields
         if self.DATABASE_URL:
             return self.DATABASE_URL
         pwd = self.DB_PASSWORD.get_secret_value()
-        return f"{self.DB_SCHEME}://{self.DB_USER}:{pwd}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4"
+        ssl_params = f"&ssl_mode={self.DB_SSL_MODE}" if self.APP_ENV == "prod" else ""
+        return f"{self.DB_SCHEME}://{self.DB_USER}:{pwd}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset={self.DB_CHARSET}{ssl_params}"
 
     # --- JWT ---
     SECRET_KEY: SecretStr = SecretStr("change-me")

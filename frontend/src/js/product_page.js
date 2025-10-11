@@ -8,8 +8,18 @@
 document.addEventListener("DOMContentLoaded", () => {
   // ===== 0) Config & State =====
   const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname) || window.location.protocol === 'file:';
-  // In production use same origin; in local/dev prefer explicit localhost:8000
-  const API_BASE = isLocal ? "http://localhost:8000" : window.location.origin;
+  
+  // API Base URL detection
+  let API_BASE;
+  if (isLocal) {
+    // Local development: use explicit backend port
+    API_BASE = "http://localhost:8000";
+  } else {
+    // Production: check if running behind proxy with /api path
+    // First try same origin with /api prefix (common nginx setup)
+    API_BASE = window.location.origin;
+  }
+  
   const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
 
   let PRODUCTS = [];                  // populated by API or fallback
