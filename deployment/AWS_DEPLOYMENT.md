@@ -301,7 +301,68 @@ docker-compose -f docker-compose.prod.yml up -d --build
 
 ---
 
-## 📞 Support
+## � Troubleshooting HTTP 404 API Errors
+
+If you see "Products API error: HTTP 404" on the products page, follow these steps:
+
+### 1. Verify Services Are Running
+```bash
+# Check if all services are running
+docker-compose -f docker-compose.prod.yml ps
+
+# Check API service logs
+docker-compose -f docker-compose.prod.yml logs api
+
+# Check nginx logs
+docker-compose -f docker-compose.prod.yml logs web
+```
+
+### 2. Test API Directly
+```bash
+# Test if API is accessible from the EC2 instance
+curl -v http://localhost:8000/health
+curl -v http://localhost:8000/api/v1/products/products
+
+# Test nginx proxy
+curl -v http://localhost/api/v1/products/products
+```
+
+### 3. Check CORS Configuration
+Ensure your `.env` file has the correct CORS origins:
+```bash
+BACKEND_CORS_ORIGINS=["https://ursaviour.com", "http://ursaviour.com"]
+```
+
+### 4. Verify Network Connectivity
+```bash
+# Check if containers can communicate
+docker exec -it ursaviour-project_web_1 ping api
+docker exec -it ursaviour-project_api_1 curl -v http://localhost:8000/health
+```
+
+### 5. Fix Common Issues
+
+**Issue: nginx can't reach API container**
+```bash
+# Restart services in correct order
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml up -d api
+sleep 10
+docker-compose -f docker-compose.prod.yml up -d web
+```
+
+**Issue: CORS blocking requests**
+- Update CORS origins in `.env` file
+- Restart API service: `docker-compose -f docker-compose.prod.yml restart api`
+
+**Issue: Database connection failed**
+- Check RDS connection details in `.env`
+- Verify security group allows connection from EC2 to RDS
+- Test connection: `docker exec -it api_container mysql -h your-rds-endpoint -u username -p`
+
+---
+
+## �📞 Support
 
 For deployment issues:
 1. Check application logs: `docker-compose logs`
