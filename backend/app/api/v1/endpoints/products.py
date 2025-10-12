@@ -30,7 +30,7 @@ def _latest_week(db: Session):
         return None
     return db.execute(select(func.max(week_col))).scalar()
 
-@router.get("/products")
+@router.get("", summary="List Products")
 def list_products(q: str | None = Query(None), limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
     """Return products in the format expected by frontend: array of products with stores"""
     with SessionLocal() as db:
@@ -151,7 +151,7 @@ def list_products(q: str | None = Query(None), limit: int = 100, offset: int = 0
 
         return result
 
-@router.get("/products/{product_id}")
+@router.get("/{product_id}", summary="Get Product")
 def get_product(product_id: int):
     with SessionLocal() as db:
         week = _latest_week(db)
