@@ -41,9 +41,17 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    # Remove host-mounted frontend files in production to ensure the image
+    # contains the exact static assets that were built at image build time.
+    # If you need SSL files, include them in the image or mount a stable
+    # secrets/volume (not a live-edit host directory).
     volumes:
-      - ./frontend/src:/usr/share/nginx/html:ro
       - ./deployment/ssl:/etc/nginx/ssl:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - api
     restart: unless-stopped
