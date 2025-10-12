@@ -226,6 +226,14 @@ yarn-error.log*
 # Logs
 logs/
 *.log
+nohup.out
+frontend_nohup.out
 
 # Coverage
 coverage/
+
+# Local development files
+*.db
+*_local.db
+test-*.html
+api-test.html
