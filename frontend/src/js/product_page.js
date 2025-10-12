@@ -14,9 +14,9 @@ if (isLocal) {
   // Local development: use explicit backend port
   API_BASE = "http://localhost:8001";
 } else {
-  // Production: check if running behind proxy with /api path
-  // First try same origin with /api prefix (common nginx setup)
+  // Production: use same origin with /api prefix (nginx proxy setup)
   API_BASE = window.location.origin;
+  console.log('[DEBUG] Production mode - API_BASE set to:', API_BASE);
 }
 
 // API Endpoints (Global scope)
@@ -1578,6 +1578,25 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadProducts() {
     try {
       isLoading = true; loadError = null; showLoading();
+      
+      // First check if backend is available (especially important for production)
+      if (!isLocal) {
+        console.log("[Products] Production environment - checking backend health...");
+        try {
+          const healthUrl = `${API_BASE}/health`;
+          console.log("[Products] Health check:", healthUrl);
+          const healthRes = await fetch(healthUrl, { cache: 'no-store', mode: 'cors' });
+          if (!healthRes.ok) {
+            throw new Error(`Backend health check failed: HTTP ${healthRes.status}`);
+          }
+          console.log("[Products] Backend health check passed");
+        } catch (healthError) {
+          console.error("[Products] Backend health check failed:", healthError);
+          showBanner(`🚨 Backend unavailable: ${healthError.message}. Check if Docker containers are running.`, 'error');
+          throw new Error(`Backend service unavailable: ${healthError.message}`);
+        }
+      }
+      
       const url = `${PRODUCTS_ENDPOINT}?limit=100`;
       console.log("[Products] GET:", url, "isLocal=", isLocal);
       showBanner(`Loading products from ${url} ...`, 'info');
@@ -1593,12 +1612,18 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("[Products] Simple loader failed, trying complex loader...");
       }
 
-      // Try primary fetch
+      // Try primary fetch with detailed logging
       let res;
       try {
-        console.log('[Products] Attempting primary fetch with options:', { cache: 'no-store', mode: 'cors' });
-        console.log('[Products] Fetching URL:', url);
+        console.log('[Products] Attempting primary fetch');
+        console.log('[Products] URL:', url);
+        console.log('[Products] API_BASE:', API_BASE);
+        console.log('[Products] Current origin:', window.location.origin);
+        console.log('[Products] Environment:', isLocal ? 'local' : 'production');
+        
         res = await fetch(url, { cache: 'no-store', mode: 'cors' });
+        console.log('[Products] Primary fetch response status:', res.status, res.statusText);
+        console.log('[Products] Response headers:', [...res.headers.entries()]);
         console.log('[Products] Primary fetch response:', {
           ok: res.ok,
           status: res.status,
