@@ -1592,7 +1592,33 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log("[Products] Backend health check passed");
         } catch (healthError) {
           console.error("[Products] Backend health check failed:", healthError);
-          showBanner(`🚨 Backend unavailable: ${healthError.message}. Check if Docker containers are running.`, 'error');
+          
+          // Show user-friendly message and provide contact info
+          showBanner(`🚨 서비스 일시 중단: 백엔드 서비스 점검 중입니다. 잠시 후 다시 시도해주세요.`, 'error');
+          
+          // Display maintenance message in the product area
+          if (gallery) {
+            gallery.innerHTML = `
+              <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #666;">
+                <h2 style="color: #e74c3c; margin-bottom: 20px;">🔧 서비스 점검 중</h2>
+                <p style="font-size: 1.1em; margin-bottom: 15px;">현재 상품 데이터를 불러올 수 없습니다.</p>
+                <p style="margin-bottom: 20px;">개발팀에서 신속히 복구 작업을 진행하고 있습니다.</p>
+                <button onclick="window.location.reload()" style="
+                  background: #3498db; color: white; border: none; 
+                  padding: 12px 24px; border-radius: 6px; 
+                  font-size: 1em; cursor: pointer;
+                ">🔄 다시 시도</button>
+                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; display: inline-block;">
+                  <p style="margin: 0; font-size: 0.9em; color: #666;">
+                    <strong>기술 정보:</strong><br>
+                    Backend health check failed: ${healthError.message}<br>
+                    <small>관리자용 - Docker 컨테이너 상태를 확인해주세요</small>
+                  </p>
+                </div>
+              </div>
+            `;
+          }
+          
           throw new Error(`Backend service unavailable: ${healthError.message}`);
         }
       }
