@@ -1583,7 +1583,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isLocal) {
         console.log("[Products] Production environment - checking backend health...");
         try {
-          const healthUrl = `${API_BASE}/health`;
+          const healthUrl = `${API_BASE}/api/v1/products/products?limit=1`;
           console.log("[Products] Health check:", healthUrl);
           const healthRes = await fetch(healthUrl, { cache: 'no-store', mode: 'cors' });
           if (!healthRes.ok) {
