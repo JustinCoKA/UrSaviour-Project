@@ -4,8 +4,18 @@
 
 ### AWS 콘솔 접속
 1. [AWS 콘솔](https://console.aws.amazon.com) 로그인
-2. EC2 서비스 선택
-3. "Launch Instance" 클릭
+2. EC2 서비스 선택### RDS 연결 테스트
+```bash
+# EC2에서 MySQL 클라이언트 설치
+sudo apt install -y mysql-client
+
+# 실제 RDS 연결 테스트
+mysql -h ursaviour-db.cp4emoqegwfy.ap-southeast-2.rds.amazonaws.com -u admin -p
+
+# 데이터베이스 생성
+CREATE DATABASE IF NOT EXISTS ursaviour;
+USE ursaviour;
+```nch Instance" 클릭
 
 ### 인스턴스 설정
 ```
@@ -13,6 +23,10 @@
 AMI: Ubuntu Server 22.04 LTS (Free Tier)
 인스턴스 타입: t3.micro (Free Tier) 또는 t3.small (더 나은 성능)
 키 페어: 새로 생성하거나 기존 키 사용
+
+🔥 중요: RDS와 같은 리전 선택!
+리전: ap-southeast-2 (Asia Pacific - Sydney)
+VPC: vpc-09b863de1b93fc683 (기존 RDS와 동일)
 ```
 
 ### 보안 그룹 설정 (매우 중요!)
@@ -22,6 +36,7 @@ HTTP (80): 0.0.0.0/0
 HTTPS (443): 0.0.0.0/0
 Custom TCP (8000): 0.0.0.0/0  # API 서버용
 Custom TCP (3001): 0.0.0.0/0  # 개발용 (나중에 제거 가능)
+MySQL/Aurora (3306): sg-0cf1dedfd2c17e246  # RDS 연결용
 ```
 
 ### 스토리지
