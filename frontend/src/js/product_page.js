@@ -1,5 +1,5 @@
 /* products.js
- * - Loads up to 100 products from /api/v1/products/products
+ * - Loads up to 100 products from /api/v1/products
  * - Falls back to STATIC_PRODUCTS if API fails (optional)
  * - 4-col grid, open-by-default filters, collapsible sections
  * - Wide search, watchlist in localStorage
@@ -12,7 +12,7 @@ const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname) ||
 let API_BASE;
 if (isLocal) {
   // Local development: use explicit backend port
-  API_BASE = "http://localhost:8001";
+  API_BASE = "http://localhost:8000";
 } else {
   // Production: use same origin with /api prefix (nginx proxy setup)
   API_BASE = window.location.origin;
@@ -20,7 +20,7 @@ if (isLocal) {
 }
 
 // API Endpoints (Global scope)
-const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/products`;
+const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products`;
 
 // ===== Global State Variables =====
 let PRODUCTS = [];                  // populated by API or fallback
@@ -1583,7 +1583,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isLocal) {
         console.log("[Products] Production environment - checking backend health...");
         try {
-          const healthUrl = `${API_BASE}/api/v1/products/products?limit=1`;
+          const healthUrl = `${API_BASE}/api/v1/products?limit=1`;
           console.log("[Products] Health check:", healthUrl);
           const healthRes = await fetch(healthUrl, { cache: 'no-store', mode: 'cors' });
           if (!healthRes.ok) {
