@@ -595,6 +595,15 @@ main {
 .price-list div{ display:flex; justify-content:space-between; padding:6px 8px; background:#f8fafc; border-radius:8px; font-size:.95rem; }
 .price-list .original{ text-decoration:line-through; opacity:.6; margin-right:6px; }
 
+/* Ensure price rows don't overflow their card container */
+.price-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; box-sizing:border-box; }
+.price-row .left{ display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden; }
+.price-row .brand, .price-row .original-price{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.price-row .current-price{ white-space:nowrap; flex:0 0 auto; margin-left:8px; text-align:right; }
+
+/* Make the small meta rows wrap safely */
+.meta-row{ font-size:0.75rem; color:#6b7280; margin-top:4px; word-break:break-word; }
+
 /* Discount badge (top-left) */
 .badge{
   position:absolute; top:10px; left:10px; z-index:2;
@@ -602,9 +611,12 @@ main {
   box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 .badge[data-type="Half Price"]{ background:#0ea5e9; }
-.badge[data-type="30% OFF"]{ background:#10b981; }
-.badge[data-type="10% OFF"]{ background:#f59e0b; }
-.badge[data-type="Big deal"]{ background:#ef4444; }
+.badge[data-type="30% OFF"]{ background:#059669; }
+.badge[data-type="10% OFF"]{ background:#b45309; }
+.badge[data-type="Big deal"]{ background:#b91c1c; }
+
+/* Stronger badge appearance for readability */
+.badge{ color:#fff; text-shadow:0 1px 0 rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.15); }
 
 /* Wide search bar */
 .searching-bar{ width:100%; display:flex; justify-content:center; }
