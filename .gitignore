@@ -8,6 +8,35 @@ __pycache__/
 *$py.class
 *.so
 
+# ===== Environment Files =====
+.env
+.env.local
+.env.production
+*.pem
+
+# ===== IDE and Editor Files =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS Generated Files =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===== Temporary and Debug Files =====
+debug/
+logs/
+*.log
+temp/
+tmp/
+
 # Distribution / packaging
 .Python
 build/
