@@ -1,11 +1,11 @@
 # backend/app/api/v1/endpoints/products.py
-from fastapi import APIRouter, Query
-from sqlalchemy import select, func, desc, MetaData, Table
+from fastapi import APIRouter, Query, HTTPException
+from sqlalchemy import select, func, desc, MetaData, Table, and_
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, engine
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 router = APIRouter()
 
