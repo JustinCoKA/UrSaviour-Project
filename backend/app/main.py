@@ -38,6 +38,10 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
+@app.get("/api/health", include_in_schema=False)
+def api_health():
+    return {"status": "ok"}
+
 @app.get("/api/v1/health", include_in_schema=False)
 def v1_health():
     return {"status": "ok"}
