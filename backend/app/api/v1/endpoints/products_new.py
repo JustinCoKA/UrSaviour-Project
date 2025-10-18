@@ -82,7 +82,7 @@ def get_products(
             result_products = []
             
             for product in products:
-                # 각 제품의 매장별 가격 정보 조회
+                # 각 제품의 매장별 가격 정보 조회 (선택사항)
                 store_prices_query = select(
                     StoreOfferings.c.storeId,
                     StoreOfferings.c.price,
@@ -99,10 +99,23 @@ def get_products(
                 
                 store_prices = db.execute(store_prices_query).fetchall()
                 
+                # storeOfferings가 없어도 기본 매장들로 표시
                 if not store_prices:
-                    # If no store prices found, create a default entry with base price
-                    logger.warning(f"No store prices found for product {product.productId}")
-                    continue
+                    # 모든 매장 조회
+                    all_stores_query = select(Stores.c.storeId, Stores.c.storeName)
+                    all_stores = db.execute(all_stores_query).fetchall()
+                    
+                    # 기본 가격으로 모든 매장에 대해 생성
+                    store_prices = []
+                    for store in all_stores:
+                        # storeOfferings가 없으면 basePrice 사용
+                        store_prices.append(type('StorePrice', (), {
+                            'storeId': store.storeId,
+                            'storeName': store.storeName,
+                            'price': product.basePrice,
+                            'basePrice': product.basePrice,
+                            'offerDetails': 'Regular Price'
+                        })())
                 
                 stores_info = []
                 all_prices = []
