@@ -466,13 +466,11 @@ main {
     /*== 8.1 Product Gallery ==*/
     .product-gallery {
       display: grid;
-      grid-template-columns: repeat(3, 1fr) !important;
+      grid-template-columns: repeat(3, 1fr);
       gap: 24px;
-      margin-top: 20px;
+      width: 100%;
       max-width: 1200px;
-      margin-left: 10%;
-      margin-right: auto;
-      float: right;
+      margin: 0 auto;
     }
 
     .card {
@@ -579,12 +577,27 @@ main {
   background:#fff; border-radius:16px; padding:14px;
   box-shadow:0 8px 24px rgba(0,0,0,.06);
   transition:transform .15s ease, box-shadow .15s ease; position:relative; overflow:hidden;
+  min-height: 450px;
+  display: flex;
+  flex-direction: column;
 }
 .card:hover{ transform:translateY(-4px); box-shadow:0 10px 28px rgba(0,0,0,.10); }
 .card .media{ position:relative; border-radius:10px; overflow:hidden; }
 .card img{ width:100%; height:170px; object-fit:cover; display:block; }
 .card h3{ font-size:1.05rem; margin:10px 0 6px; font-weight:600; font-family:'Inter',sans-serif; color:#0f172a; }
 .card .desc{ font-size:.9rem; color:#475569; margin-bottom:8px; }
+
+/* Card body takes up remaining space */
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Push watchlist button to bottom */
+.card-body .btn-watchlist {
+  margin-top: auto;
+}
 
 /* Category badges with color coding */
 .card .category {
