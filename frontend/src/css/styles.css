@@ -597,8 +597,9 @@ main {
 
 /* Ensure price rows don't overflow their card container */
 .price-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; box-sizing:border-box; }
-.price-row .left{ display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden; }
-.price-row .brand, .price-row .original-price{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.price-row .left{ display:flex; align-items:center; gap:8px; min-width:0; flex:1; }
+.price-row .brand{ white-space:nowrap; font-weight:600; color:#374151; flex:0 0 auto; }
+.price-row .original-price{ white-space:nowrap; flex:0 0 auto; }
 .price-row .current-price{ white-space:nowrap; flex:0 0 auto; margin-left:8px; text-align:right; }
 
 /* Make the small meta rows wrap safely */
