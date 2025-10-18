@@ -311,22 +311,12 @@ function cardHTML(item) {
     const currentPrice = formatPrice(store.price);
     const originalPrice = store.original_price ? formatPrice(store.original_price) : null;
     
-    // Calculate discount percentage
-    let discountBadge = '';
-    if (originalPrice && originalPrice !== currentPrice) {
-      const discount = Math.round(((parseFloat(originalPrice) - parseFloat(currentPrice)) / parseFloat(originalPrice)) * 100);
-      if (discount > 0) {
-        discountBadge = `<span class="discount-badge">-${discount}%</span>`;
-      }
-    }
-    
     const priceRowHTML = `
       <div class="price-line">
         <span class="brand">${escapeHTML(store.brand)}</span>
         <span class="price-info">
           ${originalPrice ? `<span class="original">$${originalPrice}</span>` : ''}
           <span class="current">$${currentPrice}</span>
-          ${discountBadge}
         </span>
       </div>
     `;

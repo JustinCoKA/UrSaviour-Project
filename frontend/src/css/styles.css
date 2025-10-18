@@ -848,18 +848,6 @@ main {
   gap: 8px;
 }
 
-/* Discount badge for individual prices */
-.discount-badge {
-  background: #dc2626;
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 /* Watchlist button styling */
 .btn-watchlist {
   width: 100%;
