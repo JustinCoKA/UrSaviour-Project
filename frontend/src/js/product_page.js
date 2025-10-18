@@ -312,12 +312,12 @@ function cardHTML(item) {
     const originalPrice = store.original_price ? formatPrice(store.original_price) : null;
     
     const priceRowHTML = `
-      <div class="price-row">
-        <div class="left">
-          <span class="brand">${escapeHTML(store.brand)}</span>
-          ${originalPrice ? `<span class="original-price">$${originalPrice}</span>` : ''}
-        </div>
-        <span class="current-price">$${currentPrice}</span>
+      <div class="price-line">
+        <span class="brand">${escapeHTML(store.brand)}</span>
+        <span class="price-info">
+          ${originalPrice ? `<span class="original">$${originalPrice}</span>` : ''}
+          <span class="current">$${currentPrice}</span>
+        </span>
       </div>
     `;
     

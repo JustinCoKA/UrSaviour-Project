@@ -788,6 +788,39 @@ main {
   opacity: .6;
   margin-right: 6px;
 }
+.store-prices .current {
+  font-weight: 700;
+  color: #0f172a;
+}
+.store-prices .price-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Watchlist button styling */
+.btn-watchlist {
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+}
+.btn-watchlist:hover {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(14, 165, 233, 0.3);
+}
+.btn-watchlist:active {
+  transform: translateY(0);
+}
 
 /* Actions (remove + notify) */
 .watch-actions {
