@@ -1758,21 +1758,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function normalizeProducts(list) {
     console.log('[Normalize] Input list length:', list?.length);
-    // Ensure minimal shape consistency
+    console.log('[Normalize] Sample product:', list?.[0]);
+    
+    // Ensure minimal shape consistency - handle NEW API format
     const result = list.map((p, idx) => {
-      console.log(`[Normalize] Processing product ${idx}:`, p.id, p.name);
+      console.log(`[Normalize] Processing product ${idx}:`, p.productId || p.id, p.productName || p.name);
       
-      // Handle API data structure - convert single price/store to stores array
+      // Handle NEW API data structure
       let processedStores = [];
       
       if (Array.isArray(p.stores)) {
-        // Handle existing stores array format
+        // Handle new API stores array format
         processedStores = p.stores.map((s, storeIdx) => {
-          console.log(`[Normalize] Processing store ${storeIdx}:`, s.brand, 'price:', s.price, 'type:', typeof s.price);
+          console.log(`[Normalize] Processing store ${storeIdx}:`, s.store_name, 'final_price:', s.final_price);
           return {
-            brand: s.brand || "Unknown",
-            price: Number(s.price ?? NaN),
-            original_price: typeof s.original_price === "number" ? s.original_price : undefined,
+            brand: s.store_name || s.brand || "Unknown Store",
+            price: Number(s.final_price || s.price || 0),
+            original_price: Number(s.original_price || s.basePrice || s.final_price || s.price || 0),
             jobNumber: s.jobNumber,
             jobId: s.jobId,
             lastUpdatedAt: s.lastUpdatedAt || s.last_updated_at || s.updatedAt || s.updated_at || null
@@ -1803,11 +1805,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const normalizedProduct = {
-        id: p.id || cryptoRandomId(),
-        name: String(p.name || "Unnamed"),
-        category: p.category || "Other",
+        id: p.productId || p.id || cryptoRandomId(),
+        name: String(p.productName || p.name || "Unknown Product"),
+        category: p.categoryName || p.category || "Uncategorized",
         description: p.description || "",
-        image: p.image || "",
+        image: p.defaultImageUrl || p.image || "",
         special: p.special || null,
         stores: processedStores
       };
