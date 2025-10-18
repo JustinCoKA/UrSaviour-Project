@@ -83,14 +83,14 @@ main {
 }
 
 .logo-img {
-  height: 80px; /* 로고 크기 조정 */
+  height: 80px; /* Adjust logo size */
   margin-right: 1rem;
 }
 
 .main-nav a {
   color: #fff;
   text-decoration: none;
-  margin-left: 1.5rem; /* 링크 간 간격 조정 */
+  margin-left: 1.5rem; /* Adjust spacing between links */
   transition: color 0.3s;
 }
 
@@ -157,7 +157,7 @@ main {
    ========================================================================== */
 .main-content {
   width: 100%;
-  max-width: 1200px; /* 콘텐츠 너비 제한 */
+  max-width: 1200px; /* Limit content width */
   box-sizing: border-box;
   text-align: center;
   padding: 80px 20px;
@@ -240,7 +240,7 @@ main {
   margin: 0;
 }
 
-/* 링크 스타일 */
+/* Link styles */
 .footer-links {
   list-style: none;
   padding: 0;

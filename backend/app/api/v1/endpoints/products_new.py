@@ -86,13 +86,13 @@ def get_products(
     limit: int = Query(100, description="Maximum number of products to return")
 ) -> Dict[str, Any]:
     """
-    프론트엔드 요구사항에 맞춘 제품 목록 API
-    각 제품마다 모든 매장의 가격 정보를 포함하여 반환
+    Product list API tailored to frontend requirements
+    Returns all store pricing information for each product
     """
     
     with SessionLocal() as db:
         try:
-            # 기본 제품 정보 가져오기
+            # Get basic product information
             products_query = select(
                 Products.c.productId,
                 Products.c.productName,
@@ -102,23 +102,23 @@ def get_products(
                 Products.c.basePrice
             ).select_from(Products)
             
-            # 카테고리 필터 적용
+            # Apply category filter
             if category and category.lower() != "show all":
                 products_query = products_query.where(Products.c.categoryName == category)
             
-            # 검색 필터 적용
+            # Apply search filter
             if search:
                 products_query = products_query.where(
                     Products.c.productName.ilike(f"%{search}%")
                 )
             
-            # 제품 목록 조회
+            # Query product list
             products = db.execute(products_query.limit(limit)).fetchall()
             
             result_products = []
             
             for product in products:
-                # 각 제품의 매장별 가격 정보 조회 (선택사항)
+                # Query store-specific pricing info for each product (optional)
                 store_prices_query = select(
                     StoreOfferings.c.storeId,
                     StoreOfferings.c.price,
@@ -129,13 +129,13 @@ def get_products(
                     StoreOfferings.join(Stores, StoreOfferings.c.storeId == Stores.c.storeId)
                 ).where(StoreOfferings.c.productId == product.productId)
                 
-                # 특정 매장 필터 적용
+                # Apply specific store filter
                 if store_id:
                     store_prices_query = store_prices_query.where(StoreOfferings.c.storeId == store_id)
                 
                 store_prices = db.execute(store_prices_query).fetchall()
                 
-                # 매장별 기본 가격 조회 (foundational dataset)
+                # Query store-specific base prices (foundational dataset)
                 base_prices_query = select(
                     StoreBasePrices.c.storeId,
                     StoreBasePrices.c.basePrice,
@@ -153,9 +153,9 @@ def get_products(
                             'storeName': bp.storeName
                         }
                 
-                # storeOfferings가 없으면 기본 가격으로 표시
+                # If no storeOfferings, display with base prices
                 if not store_prices:
-                    # 기본 가격이 있으면 사용, 없으면 전체 매장에 products.basePrice
+                    # Use base prices if available, otherwise use products.basePrice for all stores
                     if base_prices:
                         store_prices = []
                         for store_id, price_info in base_prices.items():
@@ -190,20 +190,20 @@ def get_products(
                 for store_price in store_prices:
                     final_price = float(store_price.price)
                     
-                    # 기본 가격 결정: store_base_prices > storeOfferings.basePrice > products.basePrice
-                    base_price = final_price  # 기본값
+                    # Determine base price: store_base_prices > storeOfferings.basePrice > products.basePrice
+                    base_price = final_price  # Default value
                     
                     if hasattr(store_price, 'storeId') and store_price.storeId in base_prices:
-                        # foundational dataset의 매장별 기본 가격 사용
+                        # Use store-specific base price from foundational dataset
                         base_price = base_prices[store_price.storeId]['basePrice']
                     elif hasattr(store_price, 'basePrice') and store_price.basePrice:
-                        # storeOfferings의 basePrice 사용
+                        # Use basePrice from storeOfferings
                         base_price = float(store_price.basePrice)
                     else:
-                        # products 테이블의 basePrice 사용
+                        # Use basePrice from products table
                         base_price = float(product.basePrice)
                     
-                    # 할인율 계산
+                    # Calculate discount percentage
                     discount_percentage = 0
                     if base_price > final_price:
                         discount_percentage = round(((base_price - final_price) / base_price) * 100)
@@ -225,7 +225,7 @@ def get_products(
                 if not all_prices:
                     continue
                 
-                # 가격 필터 적용
+                # Apply price filter
                 min_product_price = min(all_prices)
                 max_product_price = max(all_prices)
                 
@@ -234,7 +234,7 @@ def get_products(
                 if max_price is not None and min_product_price > max_price:
                     continue
                 
-                # 할인 필터 적용
+                # Apply discount filter
                 has_discount = any(s["discount_percentage"] > 0 for s in stores_info)
                 if on_sale is not None:
                     if on_sale and not has_discount:
@@ -242,11 +242,11 @@ def get_products(
                     if not on_sale and has_discount:
                         continue
                 
-                # 매장 필터가 적용되었는데 해당 매장 데이터가 없으면 제외
+                # Exclude if store filter is applied but no data for that store
                 if store_id and not any(s["store_id"] == store_id for s in stores_info):
                     continue
                 
-                # 가격 순으로 매장 정렬 (최저가 먼저)
+                # Sort stores by price (lowest price first)
                 stores_info.sort(key=lambda x: x["final_price"])
                 
                 product_data = {
@@ -260,14 +260,14 @@ def get_products(
                     "lowest_price": min_product_price,
                     "highest_price": max_product_price,
                     "price_range": max_product_price - min_product_price,
-                    "best_deal": stores_info[0] if stores_info else None,  # 최저가 매장
+                    "best_deal": stores_info[0] if stores_info else None,  # Lowest price store
                     "has_discount": has_discount,
                     "total_stores": len(stores_info)
                 }
                 
                 result_products.append(product_data)
             
-            # 최저가 순으로 제품 정렬
+            # Sort products by lowest price
             result_products.sort(key=lambda x: x["lowest_price"])
             
             return {
@@ -292,11 +292,11 @@ def get_products(
 
 @router.get("/{product_id}", summary="Get specific product details")
 def get_product_details(product_id: str) -> Dict[str, Any]:
-    """특정 제품의 상세 정보 및 모든 매장별 가격 비교"""
+    """Detailed information for a specific product and price comparison across all stores"""
     
     with SessionLocal() as db:
         try:
-            # 제품 기본 정보 조회
+            # Query basic product information
             product_query = select(
                 Products.c.productId,
                 Products.c.productName,
@@ -311,7 +311,7 @@ def get_product_details(product_id: str) -> Dict[str, Any]:
             if not product:
                 raise HTTPException(status_code=404, detail="Product not found")
             
-            # 매장별 가격 정보 조회
+            # Query store-specific pricing information
             store_prices_query = select(
                 StoreOfferings.c.storeId,
                 StoreOfferings.c.price,
@@ -343,10 +343,10 @@ def get_product_details(product_id: str) -> Dict[str, Any]:
                     "offer_details": store_price.offerDetails or "Regular Price"
                 })
             
-            # 가격 순 정렬
+            # Sort by price
             stores_info.sort(key=lambda x: x["final_price"])
             
-            # 가격 분석
+            # Price analysis
             prices = [s["final_price"] for s in stores_info]
             price_analysis = {}
             
@@ -381,7 +381,7 @@ def get_product_details(product_id: str) -> Dict[str, Any]:
 
 @router.get("/stores/", summary="Get all stores")
 def get_stores() -> Dict[str, Any]:
-    """모든 매장 목록 반환"""
+    """Return list of all stores"""
     
     with SessionLocal() as db:
         try:
@@ -403,7 +403,7 @@ def get_stores() -> Dict[str, Any]:
 
 @router.get("/categories/", summary="Get all categories")
 def get_categories() -> Dict[str, Any]:
-    """모든 카테고리 목록 반환"""
+    """Return list of all categories"""
     
     with SessionLocal() as db:
         try:
@@ -424,5 +424,5 @@ def get_categories() -> Dict[str, Any]:
 
 @router.get("/health", summary="Health check")
 def health_check():
-    """API 상태 확인"""
+    """API status check"""
     return {"status": "ok", "service": "products"}

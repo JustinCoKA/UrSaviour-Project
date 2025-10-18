@@ -94,19 +94,19 @@ migrations/
 - **🗃️ init_db.py**: Initial database setup script
 ```
 migrations/
-├── env.py                        # Alembic 환경 설정
-├── script.py.mako               # 마이그레이션 템플릿
-├── README                       # 마이그레이션 가이드
-├── README_JOBNUMBER.md          # Job Number 필드 추가 설명
-└── versions/                    # 마이그레이션 버전
-    └── 20251007_add_jobnumber.py # Job Number 필드 추가 마이그레이션
+├── env.py                        # Alembic environment configuration
+├── script.py.mako               # Migration template
+├── README                       # Migration guide
+├── README_JOBNUMBER.md          # Job Number field addition documentation
+└── versions/                    # Migration versions
+    └── 20251007_add_jobnumber.py # Job Number field addition migration
 ```
 
-#### 🐳 Backend 배포 파일
-- `Dockerfile` - 백엔드 컨테이너 이미지 빌드
-- `alembic.ini` - 데이터베이스 마이그레이션 설정
-- `requirements.txt` - Python 의존성 패키지
-- `init_db.py` - 데이터베이스 초기화 스크립트
+#### 🐳 Backend deployment files
+- `Dockerfile` - Backend container image build
+- `alembic.ini` - Database migration configuration
+- `requirements.txt` - Python dependency packages
+- `init_db.py` - Database initialization script
 
 ---
 
@@ -147,17 +147,17 @@ src/
     └── watchlist.js              # Watchlist management logic
 ```
 
-#### 🐳 Frontend 배포 파일
-- `default.conf` - Nginx 설정 (컨테이너 배포용)
+#### 🐳 Frontend deployment files
+- `default.conf` - Nginx configuration (for container deployment)
 
 ---
 
-### 📁 `/data` - 데이터셋 및 샘플
-프로젝트에서 사용하는 실제 데이터 파일들
+### 📁 `/data` - Datasets and samples
+Actual data files used in the project
 
 ```
 data/
-├── 📊 foundational_dataset_v1.csv    # 기초 상품 데이터셋 (10K+ 상품)
+├── 📊 foundational_dataset_v1.csv    # Basic product dataset (10K+ products)
 ├── 📄 no.27week_special.pdf          # 샘플 할인 전단지 PDF
 ├── 📊 no.27week_special.csv          # PDF에서 파싱된 할인 정보
 └── 📊 temp_master_list.csv           # 임시 마스터 상품 목록

@@ -1,101 +1,101 @@
-# 🚀 UrSaviour 프로덕션 배포 가이드
+# 🚀 UrSaviour Production Deployment Guide
 
-## 현재 문제
-- **백엔드 Docker 컨테이너가 프로덕션 서버에서 실행되지 않음**
-- Health check `/health` → HTTP 404 응답
-- 프론트엔드는 정상 작동하지만 API 연결 실패
+## Current Issues
+- **Backend Docker container not running on production server**
+- Health check `/health` → HTTP 404 response
+- Frontend works normally but API connection fails
 
-## 즉시 실행 명령어들
+## Immediate Commands to Execute
 
-### 1️⃣ 서버 접속 및 프로젝트 확인
+### 1️⃣ Server Access and Project Verification
 ```bash
-# SSH로 서버 접속 후
-cd /opt/ursaviour  # 또는 프로젝트가 있는 경로
+# After SSH connection to server
+cd /opt/ursaviour  # or path where project is located
 
-# 현재 상태 확인
+# Check current status
 docker ps -a
 docker-compose ps
 ```
 
-### 2️⃣ Docker 서비스 시작 (가장 중요!)
+### 2️⃣ Start Docker Services (Most Important!)
 ```bash
-# 기존 컨테이너 정지
+# Stop existing containers
 docker-compose -f docker-compose.prod.yml down
 
-# 프로덕션 서비스 시작
+# Start production services
 docker-compose -f docker-compose.prod.yml up -d
 
-# 상태 확인
+# Check status
 docker-compose -f docker-compose.prod.yml ps
 ```
 
-### 3️⃣ 즉시 확인해야 할 것들
+### 3️⃣ Immediate Checks Required
 ```bash
-# API 서버 상태
+# API server status
 curl http://localhost:8000/health
-# 예상 응답: {"status":"ok"}
+# Expected response: {"status":"ok"}
 
-# 컨테이너 로그 확인
+# Check container logs
 docker-compose -f docker-compose.prod.yml logs api
 
-# 포트 확인
+# Check ports
 netstat -tlnp | grep 8000
 ```
 
-### 4️⃣ 환경 변수 확인
+### 4️⃣ Environment Variables Check
 ```bash
-# .env 파일 존재 확인
+# Check .env file existence
 ls -la .env
 
-# 주요 환경 변수 확인 (민감 정보 제외)
+# Check key environment variables (excluding sensitive info)
 grep -v PASSWORD .env | grep -v SECRET | head -10
 ```
 
-## 🔧 문제 해결 시나리오별 대응
+## 🔧 Problem Resolution by Scenario
 
-### 시나리오 1: Docker가 설치되지 않음
+### Scenario 1: Docker not installed
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 sudo usermod -aG docker $USER
-# 로그아웃 후 재로그인 필요
+# Logout and re-login required
 ```
 
-### 시나리오 2: Docker Compose 없음
+### Scenario 2: Docker Compose missing
 ```bash
 sudo curl -L "https://github.com/docker/compose/releases/download/v2.21.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 ```
 
-### 시나리오 3: 환경 변수 문제
+### Scenario 3: Environment variables issue
 ```bash
-# 프로덕션 환경 파일 복사
+# Copy production environment file
 cp .env.production .env
 
-# 필수 환경 변수 설정
+# Set required environment variables
 nano .env
-# DATABASE_URL, SECRET_KEY, BACKEND_CORS_ORIGINS 확인/수정
+# Check/modify DATABASE_URL, SECRET_KEY, BACKEND_CORS_ORIGINS
 ```
 
-### 시나리오 4: 포트 충돌
+### Scenario 4: Port conflict
 ```bash
-# 8000 포트 사용 중인 프로세스 확인
+# Check processes using port 8000
 sudo lsof -i :8000
-# 필요시 해당 프로세스 종료
+# Kill the process if necessary
 ```
 
-### 시나리오 5: 네트워크 문제
+### Scenario 5: Network issues
 ```bash
-# Docker 네트워크 재설정
+# Reset Docker network
 docker network prune
 docker-compose -f docker-compose.prod.yml up -d --force-recreate
 ```
 
-## ✅ 성공 확인 체크리스트
+## ✅ Success Verification Checklist
 
-완료되면 다음이 모두 정상이어야 합니다:
+When completed, all of the following should work normally:
 
-1. **Docker 컨테이너 상태**
+1. **Docker Container Status**
    ```bash
    $ docker-compose -f docker-compose.prod.yml ps
    NAME     COMMAND            SERVICE   STATUS    PORTS
@@ -109,15 +109,15 @@ docker-compose -f docker-compose.prod.yml up -d --force-recreate
    {"status":"ok"}
    ```
 
-3. **웹사이트 접속**
-   - https://ursaviour.com/products.html 접속
-   - 제품이 정상 로드됨
-   - 콘솔에 오류 없음
+3. **Website Access**
+   - Access https://ursaviour.com/products.html
+   - Products load normally
+   - No errors in console
 
-## 🆘 긴급상황 연락처
-- 개발팀 Slack: #dev-emergency
-- 문제 발생 시 스크린샷과 함께 docker logs 공유
+## 🆘 Emergency Contact
+- Development Team Slack: #dev-emergency
+- Share screenshots and docker logs when reporting issues
 
 ---
-**⏰ 예상 복구 시간: 5-15분**
-**👥 필요 권한: 서버 SSH 접속, Docker 실행 권한**
+**⏰ Expected Recovery Time: 5-15 minutes**
+**👥 Required Permissions: Server SSH access, Docker execution rights**
