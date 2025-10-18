@@ -176,27 +176,26 @@ function normalizeProducts(rawData) {
 
   const result = rawData.map((p, idx) => {
     console.log(`[Normalize] Processing product ${idx}:`, {
-      productId: p.productId,
-      productName: p.productName,
-      categoryName: p.categoryName,
-      defaultImageUrl: p.defaultImageUrl,
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      image: p.image,
       description: p.description,
       special: p.special,
-      prices_raw: p.prices
+      stores_raw: p.stores
     });
 
     let processedStores = [];
-    if (Array.isArray(p.prices)) {
-      processedStores = p.prices.map(price => {
+    if (Array.isArray(p.stores)) {
+      processedStores = p.stores.map(store => {
         const storeInfo = {
-          brand: price.storeName || "Unknown Store",
-          price: Number(price.base_price) || 0
+          brand: store.brand || "Unknown Store",
+          price: Number(store.price) || 0
         };
         
         // Add original price if there's a discount
-        if (price.discount_price && Number(price.discount_price) !== Number(price.base_price)) {
-          storeInfo.original_price = Number(price.base_price);
-          storeInfo.price = Number(price.discount_price);
+        if (store.original_price && Number(store.original_price) !== Number(store.price)) {
+          storeInfo.original_price = Number(store.original_price);
         }
         
         return storeInfo;
@@ -206,11 +205,11 @@ function normalizeProducts(rawData) {
     console.log(`[Normalize] Product ${idx} processed stores:`, processedStores);
     
     const normalizedProduct = {
-      id: p.productId || p.id || cryptoRandomId(),
-      name: String(p.productName || p.name || "Unknown Product"),
-      category: p.categoryName || p.category || "Uncategorized",
+      id: p.id || cryptoRandomId(),
+      name: String(p.name || "Unknown Product"),
+      category: p.category || "Uncategorized",
       description: p.description || "",
-      image: p.defaultImageUrl || p.image || "",
+      image: p.image || "",
       special: p.special || null,
       stores: processedStores
     };
