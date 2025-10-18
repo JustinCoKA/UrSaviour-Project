@@ -14,9 +14,9 @@ if (isLocal) {
   // Local development: use explicit backend port
   API_BASE = "http://localhost:8000";
 } else {
-  // Production: use same origin with /api prefix (nginx proxy setup)
-  API_BASE = window.location.origin;
-  console.log('[DEBUG] Production mode - API_BASE set to:', API_BASE);
+  // Production: use nginx proxy (empty string for relative paths)
+  API_BASE = "";
+  console.log('[DEBUG] Production mode - using nginx proxy with relative paths');
 }
 
 // API Endpoints (Global scope)
