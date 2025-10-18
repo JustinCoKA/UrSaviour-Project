@@ -1770,7 +1770,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (Array.isArray(p.stores)) {
         // Handle new API stores array format
         processedStores = p.stores.map((s, storeIdx) => {
-          console.log(`[Normalize] Processing store ${storeIdx}:`, s.store_name, 'final_price:', s.final_price);
+          console.log(`[Normalize] Processing store ${storeIdx}:`, JSON.stringify(s, null, 2));
+          console.log(`[Normalize] Store mapping: ${s.store_name} → ${s.final_price}`);
+          
           return {
             brand: s.store_name || s.brand || "Unknown Store",
             price: Number(s.final_price || s.price || 0),
@@ -1814,7 +1816,13 @@ document.addEventListener("DOMContentLoaded", () => {
         stores: processedStores
       };
       
-      console.log(`[Normalize] Product ${idx} final stores count:`, normalizedProduct.stores.length);
+      console.log(`[Normalize] Product ${idx} FINAL:`, {
+        id: normalizedProduct.id,
+        name: normalizedProduct.name,
+        category: normalizedProduct.category,
+        stores_count: normalizedProduct.stores.length,
+        first_store: normalizedProduct.stores[0]
+      });
       return normalizedProduct;
     });
     
