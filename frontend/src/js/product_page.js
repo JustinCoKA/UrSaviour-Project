@@ -20,7 +20,7 @@ if (isLocal) {
 }
 
 // API Endpoints (Global scope)
-const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products`;
+const PRODUCTS_ENDPOINT = `${API_BASE}/api/v1/products/`;
 
 // ===== Global State Variables =====
 let PRODUCTS = [];                  // populated by API or fallback
@@ -1583,7 +1583,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isLocal) {
         console.log("[Products] Production environment - checking backend health...");
         try {
-          const healthUrl = `${API_BASE}/api/v1/products?limit=1`;
+          const healthUrl = `${API_BASE}/api/v1/products/?limit=1`;
           console.log("[Products] Health check:", healthUrl);
           const healthRes = await fetch(healthUrl, { cache: 'no-store', mode: 'cors' });
           if (!healthRes.ok) {

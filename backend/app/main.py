@@ -14,6 +14,10 @@ dev_local_origins = [
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "https://www.ursaviour.com",
+    "https://ursaviour.com",
+    "http://www.ursaviour.com",
+    "http://ursaviour.com"
 ]
 if len(cors_origins) == 1 and cors_origins[0] == "*":
     allow_origins = dev_local_origins
