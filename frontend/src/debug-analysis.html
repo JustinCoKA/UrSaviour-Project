@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UrSaviour API Debug Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; max-height: 400px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>UrSaviour API Debug Analysis</h1>
+    
+    <div class="debug-section">
+        <h2>API Response Test</h2>
+        <button onclick="testAPI()">🔍 Test API Response</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>Data Normalization Test</h2>
+        <button onclick="testNormalization()">🔧 Test Data Normalization</button>
+        <div id="normalization-results"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>Console Logs Capture</h2>
+        <div id="console-logs"></div>
+    </div>
+
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        let logCapture = [];
+        
+        console.log = function(...args) {
+            logCapture.push({type: 'log', message: args.join(' ')});
+            originalLog.apply(console, args);
+            updateConsoleLogs();
+        };
+        
+        console.warn = function(...args) {
+            logCapture.push({type: 'warn', message: args.join(' ')});
+            originalWarn.apply(console, args);
+            updateConsoleLogs();
+        };
+        
+        console.error = function(...args) {
+            logCapture.push({type: 'error', message: args.join(' ')});
+            originalError.apply(console, args);
+            updateConsoleLogs();
+        };
+        
+        function updateConsoleLogs() {
+            const logsDiv = document.getElementById('console-logs');
+            const recentLogs = logCapture.slice(-20); // Show last 20 logs
+            logsDiv.innerHTML = recentLogs.map(log => 
+                `<div class="${log.type}">[${log.type.toUpperCase()}] ${log.message}</div>`
+            ).join('');
+        }
+
+        async function testAPI() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<p>Testing API...</p>';
+            
+            try {
+                console.log('=== API DEBUG TEST STARTED ===');
+                
+                // Test the exact same endpoint as the frontend
+                const response = await fetch('/api/v1/products/?limit=5');
+                console.log('API Response Status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Raw API Response:', data);
+                
+                // Extract products array (same as frontend)
+                let products;
+                if (data && data.products && Array.isArray(data.products)) {
+                    products = data.products;
+                    console.log('Extracted products array:', products.length, 'items');
+                } else if (Array.isArray(data)) {
+                    products = data;
+                    console.log('Response is already array:', products.length, 'items');
+                } else {
+                    throw new Error("API response missing 'products' array");
+                }
+                
+                // Show first product in detail
+                if (products.length > 0) {
+                    console.log('First product detailed structure:', JSON.stringify(products[0], null, 2));
+                }
+                
+                resultsDiv.innerHTML = `
+                    <div class="success">✅ API Test Success</div>
+                    <p><strong>Response Type:</strong> ${typeof data}</p>
+                    <p><strong>Has 'products' key:</strong> ${data.hasOwnProperty('products')}</p>
+                    <p><strong>Products Count:</strong> ${products.length}</p>
+                    <h3>First Product Structure:</h3>
+                    <pre>${JSON.stringify(products[0], null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="error">❌ API Test Failed</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testNormalization() {
+            const resultsDiv = document.getElementById('normalization-results');
+            
+            try {
+                console.log('=== NORMALIZATION TEST STARTED ===');
+                
+                // Get fresh data from API
+                const response = await fetch('/api/v1/products/?limit=3');
+                const data = await response.json();
+                const products = data.products || data;
+                
+                if (products.length === 0) {
+                    throw new Error('No products to normalize');
+                }
+                
+                // Test normalization on first product
+                const testProduct = products[0];
+                console.log('Testing normalization on product:', JSON.stringify(testProduct, null, 2));
+                
+                // Simulate the normalization process
+                let processedStores = [];
+                
+                if (Array.isArray(testProduct.stores)) {
+                    console.log('Processing stores array:', testProduct.stores.length, 'stores');
+                    
+                    processedStores = testProduct.stores.map((s, storeIdx) => {
+                        console.log(`Store ${storeIdx} raw data:`, JSON.stringify(s, null, 2));
+                        
+                        const normalized = {
+                            brand: s.store_name || s.brand || "Unknown Store",
+                            price: Number(s.final_price || s.price || 0),
+                            original_price: Number(s.original_price || s.basePrice || s.final_price || s.price || 0)
+                        };
+                        
+                        console.log(`Store ${storeIdx} normalized:`, normalized);
+                        return normalized;
+                    });
+                }
+                
+                const normalizedProduct = {
+                    id: testProduct.productId || testProduct.id,
+                    name: String(testProduct.productName || testProduct.name || "Unknown Product"),
+                    category: testProduct.categoryName || testProduct.category || "Uncategorized",
+                    description: testProduct.description || "",
+                    image: testProduct.defaultImageUrl || testProduct.image || "",
+                    stores: processedStores
+                };
+                
+                console.log('Final normalized product:', JSON.stringify(normalizedProduct, null, 2));
+                
+                resultsDiv.innerHTML = `
+                    <div class="success">✅ Normalization Test Complete</div>
+                    <h3>Input Product:</h3>
+                    <pre>${JSON.stringify(testProduct, null, 2)}</pre>
+                    <h3>Normalized Product:</h3>
+                    <pre>${JSON.stringify(normalizedProduct, null, 2)}</pre>
+                    <h3>Issues Found:</h3>
+                    <ul>
+                        <li>Product Name: "${normalizedProduct.name}" ${normalizedProduct.name === "Unknown Product" ? "(❌ ISSUE)" : "(✅ OK)"}</li>
+                        <li>Category: "${normalizedProduct.category}" ${normalizedProduct.category === "Uncategorized" ? "(❌ ISSUE)" : "(✅ OK)"}</li>
+                        <li>Stores: ${normalizedProduct.stores.length} ${normalizedProduct.stores.length === 0 ? "(❌ NO STORES)" : "(✅ OK)"}</li>
+                    </ul>
+                `;
+                
+            } catch (error) {
+                console.error('Normalization Test Error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="error">❌ Normalization Test Failed</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
