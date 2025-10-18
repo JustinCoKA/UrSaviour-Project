@@ -305,11 +305,13 @@ function cardHTML(item) {
     return `<div class="card error">No pricing data available for ${escapeHTML(item.name)}</div>`;
   }
 
+  console.log('[cardHTML] Rendering product:', item.name, 'with stores:', stores);
+
   const storePriceRows = stores.map(store => {
     const currentPrice = formatPrice(store.price);
     const originalPrice = store.original_price ? formatPrice(store.original_price) : null;
     
-    return `
+    const priceRowHTML = `
       <div class="price-row">
         <div class="left">
           <span class="brand">${escapeHTML(store.brand)}</span>
@@ -318,6 +320,9 @@ function cardHTML(item) {
         <span class="current-price">$${currentPrice}</span>
       </div>
     `;
+    
+    console.log('[cardHTML] Store price row:', store.brand, currentPrice, originalPrice, 'HTML:', priceRowHTML);
+    return priceRowHTML;
   }).join('');
 
   // Special offer badge
@@ -326,7 +331,7 @@ function cardHTML(item) {
     specialBadge = `<div class="badge special">${escapeHTML(item.special.type)}</div>`;
   }
 
-  return `
+  const finalHTML = `
     <div class="card">
       <div class="card-header">
         <img src="${escapeHTML(item.image)}" alt="${escapeHTML(item.name)}" loading="lazy" 
@@ -346,6 +351,9 @@ function cardHTML(item) {
       </div>
     </div>
   `;
+  
+  console.log('[cardHTML] Final HTML for', item.name, ':', finalHTML);
+  return finalHTML;
 }
 
 function renderPagination(totalPages, totalItems) {
