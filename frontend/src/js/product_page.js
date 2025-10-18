@@ -59,14 +59,34 @@ function getFiltered() {
 
 function render() {
   try {
-    console.log('[Render] Starting render(), PRODUCTS.length:', PRODUCTS.length);
+    console.log('🎯 [Render] EMERGENCY DEBUG - Starting render()');
+    console.log('🎯 [Render] PRODUCTS.length:', PRODUCTS.length);
+    console.log('🎯 [Render] isLoading:', isLoading);
+    console.log('🎯 [Render] loadError:', loadError);
+    console.log('🎯 [Render] Gallery element:', !!gallery);
+    
     const data = getFiltered();
-    console.log('[Render] After getFiltered(), filtered data length:', data.length);
+    console.log('🎯 [Render] After getFiltered(), filtered data length:', data.length);
+    
     if (gallery) {
+      if (data.length === 0) {
+        console.error('🚨 [Render] NO FILTERED DATA - showing emergency message');
+        gallery.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; background: #ffe6e6; border: 2px solid #ff0000;">
+            <h2 style="color: #ff0000;">🚨 NO PRODUCTS TO DISPLAY</h2>
+            <p><strong>Total PRODUCTS:</strong> ${PRODUCTS.length}</p>
+            <p><strong>Filtered data:</strong> ${data.length}</p>
+            <p><strong>Current filters:</strong> Category: ${activeCategory}, Offer: ${activeOffer}</p>
+            <button onclick="location.reload()" style="padding: 10px 20px; font-size: 16px;">🔄 Reload Page</button>
+          </div>
+        `;
+        return;
+      }
+      
       const start = (currentPage - 1) * PER_PAGE;
       const end = start + PER_PAGE;
       const pageData = data.slice(start, end);
-      console.log('[Render] Rendering page', currentPage, 'items', start, 'to', end, '- showing', pageData.length, 'products');
+      console.log('🎯 [Render] Rendering page', currentPage, 'items', start, 'to', end, '- showing', pageData.length, 'products');
       gallery.innerHTML = pageData.map(cardHTML).join("");
       console.log('[Render] Gallery updated with', pageData.length, 'product cards');
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1985,5 +2005,30 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // ===== 7) Go! =====
+  console.log("🚀 PRODUCTS PAGE SCRIPT LOADED!");
+  console.log("🔍 Starting loadProducts...");
+  
+  // Force visibility for debugging
+  setTimeout(() => {
+    console.log("🔍 Delayed check: PRODUCTS array length:", PRODUCTS.length);
+    if (PRODUCTS.length === 0) {
+      console.error("🚨 NO PRODUCTS LOADED - EMERGENCY FALLBACK!");
+      // Emergency fallback display
+      const gallery = document.getElementById("product-gallery");
+      if (gallery) {
+        gallery.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; background: #f0f0f0; border: 2px solid #ff0000;">
+            <h2 style="color: #ff0000;">🚨 EMERGENCY DEBUG INFO</h2>
+            <p><strong>PRODUCTS length:</strong> ${PRODUCTS.length}</p>
+            <p><strong>isLoading:</strong> ${isLoading}</p>
+            <p><strong>loadError:</strong> ${loadError}</p>
+            <p><strong>API_BASE:</strong> ${API_BASE}</p>
+            <p><strong>PRODUCTS_ENDPOINT:</strong> ${PRODUCTS_ENDPOINT}</p>
+          </div>
+        `;
+      }
+    }
+  }, 3000);
+  
   loadProducts();
 });
