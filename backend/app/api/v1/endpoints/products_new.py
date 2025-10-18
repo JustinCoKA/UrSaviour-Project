@@ -15,6 +15,29 @@ Products = Table("products", metadata, autoload_with=engine)
 Stores = Table("stores", metadata, autoload_with=engine)
 StoreOfferings = Table("storeOfferings", metadata, autoload_with=engine)
 
+# Try to reflect store_base_prices table, create if not exists
+try:
+    metadata.reflect(bind=engine)
+    if 'store_base_prices' in metadata.tables:
+        StoreBasePrices = metadata.tables['store_base_prices']
+    else:
+        # Create table if it doesn't exist
+        from sqlalchemy import Column, Integer, String, Decimal, DateTime, UniqueConstraint
+        StoreBasePrices = Table('store_base_prices', metadata,
+            Column('id', Integer, primary_key=True, autoincrement=True),
+            Column('productId', String(50), nullable=False),
+            Column('storeId', Integer, nullable=False),  
+            Column('basePrice', Decimal(10, 2), nullable=False),
+            Column('lastUpdated', DateTime),
+            Column('source', String(100), default='foundational_dataset'),
+            UniqueConstraint('productId', 'storeId', name='unique_product_store_base_price')
+        )
+        metadata.create_all(engine)
+        logger.info("Created store_base_prices table")
+except Exception as e:
+    logger.warning(f"Could not setup store_base_prices table: {e}")
+    StoreBasePrices = None
+
 @router.get("/health", summary="Health check")
 def health_check():
     """API status check"""
@@ -29,11 +52,24 @@ def debug_counts():
             stores_count = db.execute(select(func.count()).select_from(Stores)).scalar()
             offerings_count = db.execute(select(func.count()).select_from(StoreOfferings)).scalar()
             
+            base_prices_count = 0
+            if StoreBasePrices is not None:
+                try:
+                    base_prices_count = db.execute(select(func.count()).select_from(StoreBasePrices)).scalar()
+                except Exception:
+                    base_prices_count = 0
+            
             return {
                 "products_count": products_count,
                 "stores_count": stores_count,
                 "store_offerings_count": offerings_count,
-                "expected_offerings": products_count * stores_count
+                "store_base_prices_count": base_prices_count,
+                "expected_base_prices": products_count * stores_count,
+                "data_structure": {
+                    "foundational_data": "products + store_base_prices",
+                    "etl_data": "storeOfferings (weekly discounts)",
+                    "store_base_prices_table_exists": StoreBasePrices is not None
+                }
             }
         except Exception as e:
             logger.error(f"Error getting counts: {str(e)}")
@@ -99,30 +135,70 @@ def get_products(
                 
                 store_prices = db.execute(store_prices_query).fetchall()
                 
-                # storeOfferings가 없어도 기본 매장들로 표시
+                # 매장별 기본 가격 조회 (foundational dataset)
+                base_prices_query = select(
+                    StoreBasePrices.c.storeId,
+                    StoreBasePrices.c.basePrice,
+                    Stores.c.storeName
+                ).select_from(
+                    StoreBasePrices.join(Stores, StoreBasePrices.c.storeId == Stores.c.storeId)
+                ).where(StoreBasePrices.c.productId == product.productId) if StoreBasePrices is not None else None
+                
+                base_prices = {}
+                if base_prices_query is not None:
+                    base_price_results = db.execute(base_prices_query).fetchall()
+                    for bp in base_price_results:
+                        base_prices[bp.storeId] = {
+                            'basePrice': float(bp.basePrice),
+                            'storeName': bp.storeName
+                        }
+                
+                # storeOfferings가 없으면 기본 가격으로 표시
                 if not store_prices:
-                    # 모든 매장 조회
-                    all_stores_query = select(Stores.c.storeId, Stores.c.storeName)
-                    all_stores = db.execute(all_stores_query).fetchall()
-                    
-                    # 기본 가격으로 모든 매장에 대해 생성
-                    store_prices = []
-                    for store in all_stores:
-                        # storeOfferings가 없으면 basePrice 사용
-                        store_prices.append(type('StorePrice', (), {
-                            'storeId': store.storeId,
-                            'storeName': store.storeName,
-                            'price': product.basePrice,
-                            'basePrice': product.basePrice,
-                            'offerDetails': 'Regular Price'
-                        })())
+                    # 기본 가격이 있으면 사용, 없으면 전체 매장에 products.basePrice
+                    if base_prices:
+                        store_prices = []
+                        for store_id, price_info in base_prices.items():
+                            store_prices.append(type('StorePrice', (), {
+                                'storeId': store_id,
+                                'storeName': price_info['storeName'],
+                                'price': price_info['basePrice'],
+                                'basePrice': price_info['basePrice'],
+                                'offerDetails': 'Base Price'
+                            })())
+                    else:
+                        # fallback: 모든 매장에 동일한 가격
+                        all_stores_query = select(Stores.c.storeId, Stores.c.storeName)
+                        all_stores = db.execute(all_stores_query).fetchall()
+                        
+                        store_prices = []
+                        for store in all_stores:
+                            store_prices.append(type('StorePrice', (), {
+                                'storeId': store.storeId,
+                                'storeName': store.storeName,
+                                'price': product.basePrice,
+                                'basePrice': product.basePrice,
+                                'offerDetails': 'Default Price'
+                            })())
                 
                 stores_info = []
                 all_prices = []
                 
                 for store_price in store_prices:
                     final_price = float(store_price.price)
-                    base_price = float(store_price.basePrice) if store_price.basePrice else final_price
+                    
+                    # 기본 가격 결정: store_base_prices > storeOfferings.basePrice > products.basePrice
+                    base_price = final_price  # 기본값
+                    
+                    if hasattr(store_price, 'storeId') and store_price.storeId in base_prices:
+                        # foundational dataset의 매장별 기본 가격 사용
+                        base_price = base_prices[store_price.storeId]['basePrice']
+                    elif hasattr(store_price, 'basePrice') and store_price.basePrice:
+                        # storeOfferings의 basePrice 사용
+                        base_price = float(store_price.basePrice)
+                    else:
+                        # products 테이블의 basePrice 사용
+                        base_price = float(product.basePrice)
                     
                     # 할인율 계산
                     discount_percentage = 0
