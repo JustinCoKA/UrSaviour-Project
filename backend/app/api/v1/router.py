@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import products_simple as products, auth, user, watchlist, assistant, admin
+from app.api.v1.endpoints import products, auth, user, watchlist, assistant, admin
 
 api_router = APIRouter()
 api_router.include_router(products.router,  prefix="/products",   tags=["Products"])
