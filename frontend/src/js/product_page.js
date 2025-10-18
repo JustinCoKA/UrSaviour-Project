@@ -328,7 +328,7 @@ function cardHTML(item) {
   // Special offer badge
   let specialBadge = '';
   if (item.special && item.special.type) {
-    specialBadge = `<div class="badge special">${escapeHTML(item.special.type)}</div>`;
+    specialBadge = `<div class="badge" data-type="${escapeHTML(item.special.type)}">${escapeHTML(item.special.type)}</div>`;
   }
 
   const finalHTML = `
