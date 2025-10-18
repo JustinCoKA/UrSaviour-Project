@@ -15,6 +15,30 @@ Products = Table("products", metadata, autoload_with=engine)
 Stores = Table("stores", metadata, autoload_with=engine)
 StoreOfferings = Table("storeOfferings", metadata, autoload_with=engine)
 
+@router.get("/health", summary="Health check")
+def health_check():
+    """API status check"""
+    return {"status": "ok", "service": "products"}
+
+@router.get("/debug/counts", summary="Debug: Get table counts")
+def debug_counts():
+    """Debug endpoint to check database table counts"""
+    with SessionLocal() as db:
+        try:
+            products_count = db.execute(select(func.count()).select_from(Products)).scalar()
+            stores_count = db.execute(select(func.count()).select_from(Stores)).scalar()
+            offerings_count = db.execute(select(func.count()).select_from(StoreOfferings)).scalar()
+            
+            return {
+                "products_count": products_count,
+                "stores_count": stores_count,
+                "store_offerings_count": offerings_count,
+                "expected_offerings": products_count * stores_count
+            }
+        except Exception as e:
+            logger.error(f"Error getting counts: {str(e)}")
+            return {"error": str(e)}
+
 @router.get("/", summary="Get all products with store prices")
 def get_products(
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -76,7 +100,9 @@ def get_products(
                 store_prices = db.execute(store_prices_query).fetchall()
                 
                 if not store_prices:
-                    continue  # 매장별 가격이 없는 제품은 제외
+                    # If no store prices found, create a default entry with base price
+                    logger.warning(f"No store prices found for product {product.productId}")
+                    continue
                 
                 stores_info = []
                 all_prices = []
@@ -169,6 +195,8 @@ def get_products(
         except Exception as e:
             logger.error(f"Error fetching products: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error fetching products: {str(e)}")
+
+
 
 @router.get("/{product_id}", summary="Get specific product details")
 def get_product_details(product_id: str) -> Dict[str, Any]:
