@@ -441,24 +441,42 @@ def transform_discount_data(raw_data: List[Dict[str, Any]]) -> List[Dict[str, An
 def map_csv_fields(csv_row: Dict[str, str]) -> Dict[str, Any]:
     """
     Map CSV fields to standard format
+    Supports both snake_case (product_name) and camelCase (productName) formats
     """
-    # CSV field mapping (adjust based on actual CSV structure)
+    # CSV field mapping - maps source CSV field names to standard field names
     field_mapping = {
+        # Support both formats
+        'store_name': 'storeName',
         'storeName': 'storeName',
+        'product_name': 'productName',
         'productName': 'productName',
+        'final_price': 'price',
         'price': 'price',
+        'base_price': 'basePrice',
         'basePrice': 'basePrice',
-        'offerDetails': 'offerDetails'
+        'discount_type': 'offerDetails',
+        'offerDetails': 'offerDetails',
+        'offer_details': 'offerDetails'
     }
     
     mapped = {}
     for csv_field, standard_field in field_mapping.items():
-        if csv_field in csv_row:
+        if csv_field in csv_row and csv_row[csv_field]:
             value = csv_row[csv_field]
             if standard_field in ['basePrice', 'price']:
-                # Handle price fields
-                value = float(re.sub(r'[^\d.]', '', str(value)))
-            mapped[standard_field] = value
+                # Handle price fields - extract numeric value
+                try:
+                    value = float(re.sub(r'[^\d.]', '', str(value)))
+                except (ValueError, AttributeError):
+                    logger.warning(f"Could not parse price value: {value}")
+                    continue
+            elif standard_field in ['storeName', 'productName', 'offerDetails']:
+                # Clean text fields
+                value = clean_text(str(value))
+            
+            # Only add if we haven't already mapped this standard field
+            if standard_field not in mapped:
+                mapped[standard_field] = value
     
     return mapped
 
