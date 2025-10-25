@@ -1,0 +1,10 @@
+# ETL Lambda Function Dependencies
+# Dependencies that need to be packaged as Lambda Layer
+
+boto3==1.34.0
+botocore==1.34.0
+pymysql==1.1.0
+PyMuPDF==1.23.8  # For PDF processing (fitz)
+pillow==10.0.0   # For image processing (images within PDFs)
+python-dateutil==2.8.2
+urllib3==1.26.18
