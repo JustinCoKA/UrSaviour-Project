@@ -302,14 +302,22 @@ def extract_from_pdf(file_path: str) -> List[Dict[str, Any]]:
         doc = fitz.open(file_path)
         full_text = ""
         
+        logger.info(f"PDF opened successfully. Total pages: {len(doc)}")
+        
         for page in doc:
-            full_text += page.get_text("text")
+            page_text = page.get_text("text")
+            logger.info(f"DEBUG: Page {page.number} text length: {len(page_text)} chars")
+            logger.info(f"DEBUG: Page {page.number} first 200 chars: {repr(page_text[:200])}")
+            full_text += page_text
         
         doc.close()
-        logger.info("Successfully extracted text from PDF")
+        logger.info(f"Successfully extracted text from PDF. Total text length: {len(full_text)} chars")
+        logger.info(f"DEBUG: Full text first 500 chars: {repr(full_text[:500])}")
         
         # Parse discount information from PDF text
-        return parse_discount_text(full_text)
+        parsed_data = parse_discount_text(full_text)
+        logger.info(f"DEBUG: Parsed {len(parsed_data)} records from PDF text")
+        return parsed_data
         
     except Exception as e:
         logger.error(f"Error extracting from PDF: {str(e)}")
