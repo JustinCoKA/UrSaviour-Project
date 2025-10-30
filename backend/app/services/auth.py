@@ -3,6 +3,10 @@ from app.db.models.user import User
 from app.schemas.user import UserCreate
 import hashlib
 import bcrypt
+from datetime import datetime, timedelta
+from typing import Optional
+import jwt
+from app.core.config import settings
 
 # Use bcrypt directly to avoid passlib initialization issues
 
@@ -35,3 +39,31 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+# Authenticate user by email and password
+def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return None
+    if not verify_password(password, user.password):
+        return None
+    return user
+
+# Create JWT access token
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=24)  # Default 24 hours
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+# Verify JWT token
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        return payload
+    except jwt.PyJWTError:
+        return None
