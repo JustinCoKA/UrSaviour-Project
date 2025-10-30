@@ -16,12 +16,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # Create a new user
 def create_user(db: Session, user_data: UserCreate) -> User:
-    hashed_pw = hash_password(user_data.password)
+    hashed_pw = hashed_pw(user_data.password)
     db_user = User(
         email=user_data.email,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
-        hashed_password=hashed_pw
+        password=hashed_pw
     )
     db.add(db_user)
     db.commit()
