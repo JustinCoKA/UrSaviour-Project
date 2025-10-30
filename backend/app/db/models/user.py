@@ -11,9 +11,9 @@ def generate_user_id():
 class User(Base):
     __tablename__ = "userAccounts"  # As per documentation
 
-    user_id = Column("userId", String(10), primary_key=True, default=generate_user_id)
+    user_id = Column("user_id", String(10), primary_key=True, default=generate_user_id)
     email = Column("email", String(255), unique=True, nullable=False)
-    first_name = Column("firstName", String(50), nullable=False)
-    last_name = Column("lastName", String(50), nullable=False)
+    first_name = Column("first_name", String(50), nullable=False)
+    last_name = Column("last_name", String(50), nullable=False)
     password = Column("password", String(255), nullable=False)
-    created_at = Column("createdAt", DateTime, default=datetime.utcnow)
+    created_at = Column("created_at", DateTime, default=datetime.utcnow)
