@@ -7,57 +7,24 @@
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/auth.css" />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
-
-<body>
+    
+  </head>
+<body class="chat-page">
   <!-- Global site header (reused across all pages) -->
   <div data-include="components/header.html"></div>
 
      <main class="main">
       <!-- Use flex layout so the Show Products button is left, the textarea fills the middle, and Send stays right -->
-      <div class="chat-container" style="display:flex; align-items:center; gap:8px;">
-        <button id="toggle-products-btn" class="chat-send-button" aria-label="Show products">Show Products</button>
+  <div class="chat-container" style="display:flex; align-items:center; gap:8px;">
         <textarea id="Input-AI" class="chat-input" placeholder="Can we help with your grocery today?" rows="5" style="flex:1; min-width:120px;"></textarea>
         <button type="submit" class="chat-send-button" aria-label="Send message">Send</button>
       </div>
     </main>
 
-    <!-- Product gallery container (kept out of view until requested). Adding this ensures product_page.js can find the element. -->
-    <div id="product-gallery" style="display:none; margin:16px auto; max-width:1100px;"></div>
-    
     <div data-include="components/footer.html"></div>
     <script src="js/include.js" defer></script>
     <script src="js/main.js" defer></script> 
     <script src="js/product_page.js" defer></script>
     <script src="js/chatbot.js" defer></script>
-    <script>
-      // Wire up the product gallery toggle without changing existing page layout or styles.
-      document.addEventListener('DOMContentLoaded', function () {
-        const btn = document.getElementById('toggle-products-btn');
-        const gallery = document.getElementById('product-gallery');
-        let loaded = false;
-        if (!btn || !gallery) return;
-
-        btn.addEventListener('click', function () {
-          const isHidden = gallery.style.display === 'none' || getComputedStyle(gallery).display === 'none';
-          if (isHidden) {
-            gallery.style.display = 'block';
-            btn.textContent = 'Hide Products';
-            // Call loadProducts if defined (product_page.js) to fetch and render products lazily
-            if (!loaded && typeof window.loadProducts === 'function') {
-              try {
-                window.loadProducts();
-              } catch (e) {
-                // ignore - product_page.js handles its own errors and shows banners
-                console.warn('Failed to load products:', e);
-              }
-              loaded = true;
-            }
-          } else {
-            gallery.style.display = 'none';
-            btn.textContent = 'Show Products';
-          }
-        });
-      });
-    </script>
 </body>
 </html>

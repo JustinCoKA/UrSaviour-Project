@@ -1,4 +1,4 @@
-#!/Users/austinle/Documents/UrSaviour-Project 2/AIAgents/aienv/bin/python
+#!/Users/austinle/Documents/UrSaviour-Project 2/AILucky/Luckyenv/bin/python3
 
 import sys
 import json
