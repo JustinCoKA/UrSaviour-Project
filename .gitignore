@@ -226,4 +226,4 @@ logs/
 *.log
 
 # Coverage
-coverage/
+coverage/.DS_Store
