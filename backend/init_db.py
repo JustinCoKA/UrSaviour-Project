@@ -1,5 +1,6 @@
 # backend/init_db.py
 
+from app.db.models import user, login_log 
 from app.db.models.base import Base
 from app.db.session import engine
 
