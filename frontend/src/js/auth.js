@@ -15,6 +15,45 @@ const config = isProduction ? API_CONFIG.production : API_CONFIG.development;
 // Login form handler
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    
+    // Password strength checker for registration
+    const passwordField = document.getElementById('password');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthText = document.getElementById('strength-text');
+    
+    if (passwordField && strengthBar && strengthText) {
+        passwordField.addEventListener('input', function() {
+            updatePasswordStrength(passwordField.value);
+        });
+    }
+    
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[a-z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+        return strength;
+    }
+    
+    function updatePasswordStrength(password) {
+        const score = checkPasswordStrength(password);
+        const percent = (score / 5) * 100;
+        strengthBar.style.width = percent + "%";
+        
+        if (score <= 2) {
+            strengthBar.style.backgroundColor = "#e57373"; // weak (red)
+            strengthText.textContent = "Weak";
+        } else if (score === 3 || score === 4) {
+            strengthBar.style.backgroundColor = "#ffb74d"; // medium (orange)
+            strengthText.textContent = "Medium";
+        } else {
+            strengthBar.style.backgroundColor = "#81c784"; // strong (green)
+            strengthText.textContent = "Strong";
+        }
+    }
     
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
@@ -51,6 +90,66 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) {
                 console.error('Login error:', error);
                 alert('An error occurred during login. Please try again.');
+            }
+        });
+    }
+
+    if (registerForm) {
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('first_name').value;
+            const lastName = document.getElementById('last_name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            // Enhanced client-side validation
+            const errors = [];
+            
+            if (password.length < 8) {
+                errors.push("Password must be at least 8 characters long.");
+            }
+            if (!/\d/.test(password)) {
+                errors.push("Password must include at least one number.");
+            }
+            if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+                errors.push("Password must include at least one special character.");
+            }
+            if (password !== confirmPassword) {
+                errors.push("Passwords do not match.");
+            }
+            
+            if (errors.length > 0) {
+                alert(errors.join("\n"));
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${config.baseURL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert('Registration successful! Please log in.');
+                    window.location.href = '/login.html';
+                } else {
+                    const errorData = await response.json();
+                    alert('Registration failed: ' + (errorData.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('An error occurred during registration. Please try again.');
             }
         });
     }
