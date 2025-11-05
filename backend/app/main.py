@@ -55,4 +55,7 @@ def ready():
     except Exception as e:
         return {"ready": False, "error": str(e)}
 
-app.include_router(api_router, prefix=settings.API_PREFIX)
+app.include_router(api_router, prefix=settings.API_PREFIX) 
+from backend.watchlist_routes import router as watchlist_router
+app.include_router(watchlist_router)
+
