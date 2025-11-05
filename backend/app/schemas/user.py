@@ -7,6 +7,10 @@ class UserCreate(BaseModel):
     last_name: str
     password: str
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
 class UserOut(BaseModel):
     user_id: str
     email: EmailStr
@@ -15,4 +19,9 @@ class UserOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserOut

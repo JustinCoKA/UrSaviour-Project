@@ -266,3 +266,7 @@ coverage/
 *_local.db
 test-*.html
 api-test.html
+
+# PEM keys (AWS)
+ur.pem
+*.pem

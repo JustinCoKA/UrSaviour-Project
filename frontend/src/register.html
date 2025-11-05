@@ -22,7 +22,7 @@
 
       <p><a href="login.html">Already a member? <u>Log In</u></a></p>
 
-      <form action="/register" method="POST" class="auth-form">
+      <form id="registerForm" class="auth-form">
         <label for="first_name">First Name *</label>
         <input type="text" id="first_name" name="first_name" placeholder="e.g. John" required />
 
@@ -58,67 +58,7 @@
   <!-- JavaScript -->
   <script src="js/include.js" defer></script>
   <script src="js/chat-toggle.js" defer></script>
+  <script src="js/auth.js" defer></script>
   <script src="js/main.js" defer></script>
-  <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const form = document.querySelector(".auth-form");
-  const password = form.querySelector("input[name='password']");
-  const confirm = form.querySelector("input[name='confirm_password']");
-  const bar = document.getElementById("strength-bar");
-  const label = document.getElementById("strength-text");
-
-  function checkStrength(pw) {
-    let strength = 0;
-    if (pw.length >= 8) strength++;
-    if (/[A-Z]/.test(pw)) strength++;
-    if (/[a-z]/.test(pw)) strength++;
-    if (/\d/.test(pw)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) strength++;
-    return strength;
-  }
-
-  function updateStrengthBar(pw) {
-    const score = checkStrength(pw);
-    const percent = (score / 5) * 100;
-    bar.style.width = percent + "%";
-    if (score <= 2) {
-      bar.style.backgroundColor = "#e57373"; // weak (red)
-      label.textContent = "Weak";
-    } else if (score === 3 || score === 4) {
-      bar.style.backgroundColor = "#ffb74d"; // medium (orange)
-      label.textContent = "Medium";
-    } else {
-      bar.style.backgroundColor = "#81c784"; // strong (green)
-      label.textContent = "Strong";
-    }
-  }
-
-  password.addEventListener("input", function () {
-    updateStrengthBar(password.value);
-  });
-
-  form.addEventListener("submit", function (e) {
-    const pw = password.value;
-    const confirmPw = confirm.value;
-    const errors = [];
-    if (pw.length < 8) {
-      errors.push("Password must be at least 8 characters long.");
-    }
-    if (!/\d/.test(pw)) {
-      errors.push("Password must include at least one number.");
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
-      errors.push("Password must include at least one symbol.");
-    }
-    if (pw !== confirmPw) {
-      errors.push("Passwords do not match.");
-    }
-    if (errors.length > 0) {
-      e.preventDefault();
-      alert(errors.join("\n"));
-    }
-  });
-});
-</script>
 </body>
 </html>
