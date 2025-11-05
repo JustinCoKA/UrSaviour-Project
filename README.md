@@ -334,24 +334,58 @@ http://localhost:3001/debug/debug-products.html
 ## 🔒 Security Configuration
 
 ### Environment Variables (.env)
+
+Copy `.env.example` to `.env` and configure for your environment:
+
 ```bash
-# Database
-DATABASE_URL=mysql://user:password@localhost/ursaviour
+# Database Configuration (choose one)
+# Option 1: Docker MySQL (default)
+DATABASE_URL=mysql+pymysql://ursaviouruser:securepassword@db:3306/ursaviour
+
+# Option 2: Team shared database
+# DATABASE_URL=mysql+pymysql://ursaviouruser:securepassword@172.16.38.147:3306/ursaviour
+
+# Option 3: EC2 production 
+# DATABASE_URL=mysql+pymysql://ursaviouruser:securepassword123!@localhost:3306/ursaviour
 
 # JWT Security
-SECRET_KEY=your-super-secret-jwt-key
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+SECRET_KEY=your-super-secret-jwt-key-change-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-# OpenAI API
-OPENAI_API_KEY=your-openai-api-key
+# AWS Configuration
+AWS_REGION=ap-southeast-2
 
-# CORS Settings
-BACKEND_CORS_ORIGINS=["http://localhost:3001"]
+# Optional: OpenAI API
+# OPENAI_API_KEY=your-openai-api-key
 
-# Email Service
-SMTP_SERVER=smtp.gmail.com
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+# Optional: Email Service
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASSWORD=your-app-password
+```
+
+### Quick Environment Setup
+
+**For Local Development:**
+```bash
+cp .env.example .env
+# Edit DATABASE_URL for Docker setup (default)
+docker-compose up -d
+```
+
+**For Team Database Sharing:**
+```bash
+cp .env.example .env
+# Uncomment team shared database URL
+# Run backend only (frontend still with Docker)
+```
+
+**For EC2 Production:**
+```bash
+cp .env.example .env
+# Uncomment EC2 production settings
+# Run deployment scripts
 ```
 
 ### Security Checklist
