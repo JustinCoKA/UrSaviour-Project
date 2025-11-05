@@ -1,70 +1,90 @@
-# backend/watchlist_routes.py
-import os
-from typing import List
-from fastapi import APIRouter, HTTPException, Depends, status
+# backend/routers/watchlist.py
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, DateTime, UniqueConstraint, func
-from sqlalchemy.orm import Session
-from backend.db import Base, engine, get_db  # <-- adjust if your db file path differs
+import mysql.connector
 
-# ---------- MODEL ----------
-class Watchlist(Base):
-    __tablename__ = "watchlist"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
-    product_id = Column(Integer, nullable=False, index=True)
-    added_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uix_user_product"),)
+router = APIRouter(
+    prefix="/watchlist",
+    tags=["watchlist"]
+)
 
+# 1) change these to your actual DB settings
+def get_db():
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="yourpassword",
+        database="ursaviour"   # <- change to your db
+    )
+    return conn
 
-# ---------- SCHEMAS ----------
-class WatchlistCreate(BaseModel):
+class WatchlistItemIn(BaseModel):
     user_id: int
     product_id: int
 
-class WatchlistItem(BaseModel):
-    id: int
-    user_id: int
-    product_id: int
-    added_at: str
-    class Config:
-        orm_mode = True
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def add_to_watchlist(item: WatchlistItemIn):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
 
-class WatchlistDelete(BaseModel):
-    user_id: int
-    product_id: int
+    # check if exists
+    cursor.execute(
+        "SELECT id FROM watchlist WHERE user_id=%s AND product_id=%s",
+        (item.user_id, item.product_id)
+    )
+    exists = cursor.fetchone()
+    if exists:
+        cursor.close()
+        conn.close()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product already in watchlist"
+        )
 
+    cursor.execute(
+        "INSERT INTO watchlist (user_id, product_id) VALUES (%s, %s)",
+        (item.user_id, item.product_id)
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    cursor.close()
+    conn.close()
+    return {"id": new_id, "message": "added to watchlist"}
 
-# ---------- ROUTER ----------
-router = APIRouter(prefix="/watchlist", tags=["Watchlist"])
+@router.get("/{user_id}")
+def get_watchlist(user_id: int):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
 
-@router.post("/add", response_model=WatchlistItem, status_code=status.HTTP_201_CREATED)
-def add_to_watchlist(payload: WatchlistCreate, db: Session = Depends(get_db)):
-    existing = db.query(Watchlist).filter(
-        Watchlist.user_id == payload.user_id,
-        Watchlist.product_id == payload.product_id
-    ).first()
-    if existing:
-        return existing
-    item = Watchlist(user_id=payload.user_id, product_id=payload.product_id)
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
+    # if you have a products table join it here
+    cursor.execute("""
+        SELECT w.id, w.product_id, w.added_at
+        FROM watchlist w
+        WHERE w.user_id = %s
+        ORDER BY w.added_at DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
 
-@router.get("/view/{user_id}", response_model=List[WatchlistItem])
-def view_watchlist(user_id: int, db: Session = Depends(get_db)):
-    items = db.query(Watchlist).filter(Watchlist.user_id == user_id).order_by(Watchlist.added_at.desc()).all()
-    return items
+    cursor.close()
+    conn.close()
+    return rows
 
-@router.delete("/remove", response_model=dict)
-def remove_from_watchlist(payload: WatchlistDelete, db: Session = Depends(get_db)):
-    item = db.query(Watchlist).filter(
-        Watchlist.user_id == payload.user_id,
-        Watchlist.product_id == payload.product_id
-    ).first()
-    if not item:
-        return {"removed": False}
-    db.delete(item)
-    db.commit()
-    return {"removed": True}
+@router.delete("/{user_id}/{product_id}")
+def remove_from_watchlist(user_id: int, product_id: int):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM watchlist WHERE user_id=%s AND product_id=%s",
+        (user_id, product_id)
+    )
+    conn.commit()
+    deleted = cursor.rowcount
+    cursor.close()
+    conn.close()
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Not found in watchlist")
+
+    return {"message": "removed"}
+
