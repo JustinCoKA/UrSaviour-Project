@@ -56,6 +56,16 @@ def ready():
         return {"ready": False, "error": str(e)}
 
 app.include_router(api_router, prefix=settings.API_PREFIX) 
-from backend.watchlist_routes import router as watchlist_router
-app.include_router(watchlist_router)
+from fastapi import FastAPI
+from routers import watchlist
+
+app = FastAPI(title="UrSaviour API")
+
+# Include Watchlist router
+app.include_router(watchlist.router)
+
+@app.get("/")
+def home():
+    return {"message": "Welcome to UrSaviour API"}
+
 
