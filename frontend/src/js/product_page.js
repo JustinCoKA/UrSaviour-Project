@@ -259,7 +259,7 @@ function getFiltered() {
     return catOk && offerOk && kwOk && priceOk;
   });
 }
-
+//Product Grid 
 function render() {
   const gallery = $("product-gallery");
   if (!gallery) {
