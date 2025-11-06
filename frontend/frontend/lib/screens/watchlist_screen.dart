@@ -64,3 +64,4 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   }
 }
 
+Add WatchlistScreen for Flutter frontend
