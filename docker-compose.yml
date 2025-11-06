@@ -3,7 +3,11 @@ services:
     build: ./backend
     env_file: ./backend/.env
     ports: ["8000:8000"]
-    depends_on: [db, mailhog]
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
     volumes: ["./backend:/app"]
     command: [ "uvicorn","app.main:app","--host","0.0.0.0","--port","8000" ]
 
@@ -11,11 +15,15 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_DATABASE: ursaviour
-      MYSQL_USER: ursaviour
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: ursaviouruser
+      MYSQL_PASSWORD: securepassword
+      MYSQL_ROOT_PASSWORD: rootpassword
     ports: ["3306:3306"]
     volumes: [dbdata:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
 
   adminer:
     image: adminer

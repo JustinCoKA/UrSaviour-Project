@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     DB_PASSWORD: SecretStr = Field(default=SecretStr("secret"), description="Database password")
     DB_NAME: str = Field(default="ursaviour", description="Database name")
     DATABASE_URL: Optional[str] = Field(default=None, description="Complete database URL (overrides other DB settings)")
+    # Optional: split DBs (auth/local vs products/remote)
+    AUTH_DATABASE_URL: Optional[str] = Field(default=None, description="Override DB URL for authentication/user data")
+    PRODUCTS_DATABASE_URL: Optional[str] = Field(default=None, description="Override DB URL for products data")
     
     # AWS RDS specific settings
     DB_SSL_MODE: str = Field(default="PREFERRED", description="SSL mode for database connection")
@@ -63,6 +66,14 @@ class Settings(BaseSettings):
         pwd = self.DB_PASSWORD.get_secret_value()
         ssl_params = f"&ssl_mode={self.DB_SSL_MODE}" if self.APP_ENV == "prod" else ""
         return f"{self.DB_SCHEME}://{self.DB_USER}:{pwd}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset={self.DB_CHARSET}{ssl_params}"
+
+    def auth_database_url(self) -> str:
+        """DB URL used for authentication (users, login logs). Defaults to DATABASE_URL."""
+        return self.AUTH_DATABASE_URL or self.database_url()
+
+    def products_database_url(self) -> str:
+        """DB URL used for products-related reads. Defaults to DATABASE_URL."""
+        return self.PRODUCTS_DATABASE_URL or self.database_url()
 
     # --- JWT ---
     SECRET_KEY: SecretStr = SecretStr("change-me")
