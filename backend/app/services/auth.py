@@ -57,13 +57,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(hours=24)  # Default 24 hours
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+    # SECRET_KEY is a SecretStr; extract raw value
+    secret = settings.SECRET_KEY.get_secret_value() if hasattr(settings.SECRET_KEY, 'get_secret_value') else str(settings.SECRET_KEY)
+    alg = getattr(settings, 'ALGORITHM', 'HS256')
+    encoded_jwt = jwt.encode(to_encode, secret, algorithm=alg)
     return encoded_jwt
 
 # Verify JWT token
 def verify_token(token: str):
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        secret = settings.SECRET_KEY.get_secret_value() if hasattr(settings.SECRET_KEY, 'get_secret_value') else str(settings.SECRET_KEY)
+        alg = getattr(settings, 'ALGORITHM', 'HS256')
+        payload = jwt.decode(token, secret, algorithms=[alg])
         return payload
     except jwt.PyJWTError:
         return None

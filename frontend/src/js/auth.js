@@ -1,7 +1,8 @@
 // Configuration for different environments
 const API_CONFIG = {
     development: {
-        baseURL: '/api/v1'
+        // Use explicit API origin in local development (no reverse proxy when serving static files)
+        baseURL: 'http://localhost:8000/api/v1'
     },
     production: {
         baseURL: 'https://api.ursaviour.com/api/v1'
@@ -81,8 +82,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
-                    // Redirect to dashboard or home page
-                    window.location.href = '/template.html';
+                    // Redirect to watchlist page after successful login
+                    window.location.href = 'watchlist.html';
                 } else {
                     const errorData = await response.json();
                     alert('Login failed: ' + errorData.detail);
@@ -132,8 +133,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        first_name: firstName,
-                        last_name: lastName,
+                        // API expects camelCase per spec
+                        firstName: firstName,
+                        lastName: lastName,
                         email: email,
                         password: password
                     })
@@ -142,7 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     const data = await response.json();
                     alert('Registration successful! Please log in.');
-                    window.location.href = '/login.html';
+                    // Use relative path to avoid server-root mismatch (e.g., 127.0.0.1:5500 vs /frontend/src)
+                    window.location.href = 'login.html';
                 } else {
                     const errorData = await response.json();
                     alert('Registration failed: ' + (errorData.detail || 'Unknown error'));
@@ -170,7 +173,8 @@ function getCurrentUser() {
 function logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
-    window.location.href = '/login.html';
+    // Use relative path for portability across dev servers
+    window.location.href = 'login.html';
 }
 
 // Add authorization header to API requests

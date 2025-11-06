@@ -3,19 +3,27 @@
 from fastapi import APIRouter, Query
 from sqlalchemy import select, MetaData, Table
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal, engine
+from app.db.session import ProductsSessionLocal, products_engine
 from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Reflect tables from existing database
+# Lazily reflect tables from the products database to avoid startup failures
 metadata = MetaData()
-Products = Table("products", metadata, autoload_with=engine)
-Stores = Table("stores", metadata, autoload_with=engine)
-StoreBasePrices = Table("store_base_prices", metadata, autoload_with=engine)
-StoreOfferings = Table("storeOfferings", metadata, autoload_with=engine)
+_tables_initialized = False
+Products = Stores = StoreBasePrices = StoreOfferings = None  # type: ignore
+
+def _ensure_tables():
+    global _tables_initialized, Products, Stores, StoreBasePrices, StoreOfferings
+    if not _tables_initialized:
+        # Perform reflection only when the endpoint is actually hit
+        Products = Table("products", metadata, autoload_with=products_engine)
+        Stores = Table("stores", metadata, autoload_with=products_engine)
+        StoreBasePrices = Table("store_base_prices", metadata, autoload_with=products_engine)
+        StoreOfferings = Table("storeOfferings", metadata, autoload_with=products_engine)
+        _tables_initialized = True
 
 @router.get("/health", summary="Health check")
 def health_check():
@@ -40,7 +48,8 @@ def get_products(
     - storeOfferings: discount information (when available)
     """
     try:
-        with SessionLocal() as db:
+        _ensure_tables()
+        with ProductsSessionLocal() as db:
             # Get basic product information
             products_query = select(
                 Products.c.productId,

@@ -8,12 +8,13 @@ from sqlalchemy.orm import Session
 class User(Base):
     __tablename__ = "userAccounts"
 
-    user_id = Column(String(10), primary_key=True)
-    email = Column(String(255), unique=True, nullable=False)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    password = Column(String(255), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    # Use camelCase column names to match the spec while keeping Python attributes snake_case
+    user_id = Column("userId", String(5), primary_key=True)
+    email = Column("email", String(255), unique=True, nullable=False)
+    first_name = Column("firstName", String(50), nullable=False)
+    last_name = Column("lastName", String(50), nullable=False)
+    password = Column("password", String(255), nullable=False)
+    created_at = Column("createdAt", DateTime, default=datetime.utcnow)
 
 # --- Event hook: Create user_id from "U0001" --- #
 @event.listens_for(User, "before_insert")
