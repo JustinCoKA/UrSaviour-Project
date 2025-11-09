@@ -14,11 +14,25 @@
   <div data-include="components/header.html"></div>
 
      <main class="main">
-      <!-- Use flex layout so the Show Products button is left, the textarea fills the middle, and Send stays right -->
-  <div class="chat-container" style="display:flex; align-items:center; gap:8px;">
-        <textarea id="Input-AI" class="chat-input" placeholder="Can we help with your grocery today?" rows="5" style="flex:1; min-width:120px;"></textarea>
-        <button type="submit" class="chat-send-button" aria-label="Send message">Send</button>
+      <div class="chat-shell">
+        <div class="chat-header">
+          <div class="agent-id">
+            <div class="agent-avatar" aria-hidden="true">🤖</div>
+            <div class="agent-meta">
+              <div class="agent-name">UrSaviour Grocery Assistant</div>
+              <div class="agent-status" id="agentStatus"><span class="status-dot online"></span> Online</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages box is injected above this input row by chatbot.js -->
+        <div class="chat-container" style="display:flex; align-items:center; gap:8px;">
+          <textarea id="Input-AI" class="chat-input" placeholder="Can we help with your grocery today?"></textarea>
+          <button type="submit" class="chat-send-button" aria-label="Send message">Send</button>
+          <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
+        </div>
       </div>
+      <p class="ai-powered-tag">Powered by UrSaviour AI · v1</p>
     </main>
 
     <div data-include="components/footer.html"></div>
