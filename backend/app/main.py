@@ -84,17 +84,16 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 # Import watchlist routes that live at project root-level under backend/
 # In the container, ./backend is mounted to /app, so the module path is just 'watchlist_routes'
 try:
-    from app.api.v1 import watchlist_routes
-
-app.include_router(watchlist_routes.router)
+  try:
+    from watchlist_routes import router as watchlist_router
+    app.include_router(watchlist_router)
 except Exception as e:
-    # Don't block API startup if optional routes fail to load
     import logging
     logging.getLogger(__name__).warning(f"Optional watchlist routes not loaded: {e}")
+
 from fastapi import FastAPI
 from app import watchlist_routes
 
 app = FastAPI()
-
 app.include_router(watchlist.router)
 
