@@ -91,7 +91,7 @@ except Exception as e:
     import logging
     logging.getLogger(__name__).warning(f"Optional watchlist routes not loaded: {e}")
 from fastapi import FastAPI
-from routers import watchlist
+from app import watchlist_routes
 
 app = FastAPI()
 
