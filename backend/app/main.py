@@ -92,8 +92,13 @@ except Exception as e:
     logging.getLogger(__name__).warning(f"Optional watchlist routes not loaded: {e}")
 
 from fastapi import FastAPI
-from app import watchlist_routes
+from app.api.v1 import watchlist  # 👈 FIXED IMPORT
 
 app = FastAPI()
+
+# include main API router
+app.include_router(api_router, prefix=settings.API_PREFIX)
+
+# include watchlist router
 app.include_router(watchlist.router)
 
