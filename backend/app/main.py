@@ -84,11 +84,16 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 # Import watchlist routes that live at project root-level under backend/
 # In the container, ./backend is mounted to /app, so the module path is just 'watchlist_routes'
 try:
-  try:
     from watchlist_routes import router as watchlist_router
     app.include_router(watchlist_router)
 except Exception as e:
     import logging
     logging.getLogger(__name__).warning(f"Optional watchlist routes not loaded: {e}")
-
+try:
+    # Secondary import style if watchlist packaged under app.api.v1
+    from app.api.v1 import watchlist
+    app.include_router(watchlist.router)
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning(f"Secondary watchlist import failed: {e}")
 
