@@ -15,16 +15,103 @@
 
   <!-- 🔸 Main contents -->
   <main>
-    <!-- Content goes here -->
-     <section class="hero">
-      <h1>This is the hero section</h1>
-      <p>This is a brief introduction to the website.</p>
+    <section class="hero">
+      <h1>Admin Dashboard</h1>
+      <p>Manage user accounts and view system information</p>
     </section>
     <section class="main-content">
-      <h1>This is the main content area</h1>
-      <p>This is where the main content of the page will go.</p>
+      <h2>User Accounts</h2>
+      <div id="loading">Loading user data...</div>
+      <div id="error" style="display: none; color: red;"></div>
+      <table id="userTable" style="width: 100%; border-collapse: collapse; display: none;">
+        <thead>
+          <tr style="background-color: #f0f0f0;">
+            <th style="border: 1px solid #ddd; padding: 8px;">User ID</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">Email</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">First Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">Last Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px;">Created At</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <!-- User rows will be inserted here -->
+        </tbody>
+      </table>
     </section>
   </main>
+  
+  <script>
+    // Fetch users from API and display in table
+    async function loadUsers() {
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const tableEl = document.getElementById('userTable');
+      const tbodyEl = document.getElementById('userTableBody');
+      
+      try {
+        // Get auth token from localStorage
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        // API endpoint - use localhost:8000 for development
+        const baseURL = window.location.hostname === 'www.ursaviour.com' || window.location.hostname === 'ursaviour.com'
+          ? 'https://api.ursaviour.com/api/v1'
+          : 'http://localhost:8000/api/v1';
+        
+        const response = await fetch(`${baseURL}/users/users`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Unauthorized - redirect to login
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const users = await response.json();
+        
+        // Clear loading message
+        loadingEl.style.display = 'none';
+        
+        // Show table
+        tableEl.style.display = 'table';
+        
+        // Populate table
+        tbodyEl.innerHTML = '';
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="border: 1px solid #ddd; padding: 8px;">${user.userId || user.user_id || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${user.email || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${user.firstName || user.first_name || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${user.lastName || user.last_name || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${user.createdAt || user.created_at || 'N/A'}</td>
+          `;
+          tbodyEl.appendChild(row);
+        });
+        
+      } catch (error) {
+        console.error('Error loading users:', error);
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'Failed to load user data: ' + error.message;
+        errorEl.style.display = 'block';
+      }
+    }
+    
+    // Load users when page loads
+    document.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
   
 
   <!-- Global site footer (reused across all pages) -->
@@ -37,5 +124,56 @@
   <script src="js/include.js" defer></script>
   <script src="js/chat-toggle.js" defer></script>
   <script src="js/main.js" defer></script>
+  <script>
+    // Simple client to load users and render the table.
+    // If you need to change API origin, edit API_BASE below.
+    const API_BASE = 'http://localhost:8000/api/v1';
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const loading = document.getElementById('users-loading');
+      const errorEl = document.getElementById('users-error');
+      const tbody = document.getElementById('users-tbody');
+      if (!tbody) return;
+      loading.style.display = 'block';
+      try {
+        const res = await fetch(`${API_BASE}/users/users`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Failed to load: HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        tbody.innerHTML = '';
+        (data || []).forEach(u => {
+          const tr = document.createElement('tr');
+          const userId = u.userId || u.user_id || '';
+          const firstName = u.firstName || u.first_name || '';
+          const lastName = u.lastName || u.last_name || '';
+          const createdAt = u.createdAt || u.created_at || '';
+          tr.innerHTML = `
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(userId)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(u.email)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(firstName)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(lastName)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(createdAt)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = 'Failed to load users: ' + (e.message || e);
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>

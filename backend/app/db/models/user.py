@@ -13,7 +13,7 @@ class User(Base):
     email = Column("email", String(255), unique=True, nullable=False)
     first_name = Column("firstName", String(50), nullable=False)
     last_name = Column("lastName", String(50), nullable=False)
-    password = Column("password", String(255), nullable=False)
+    password = Column("passwordHash", String(255), nullable=False)
     created_at = Column("createdAt", DateTime, default=datetime.utcnow)
 
 # --- Event hook: Create user_id from "U0001" --- #
