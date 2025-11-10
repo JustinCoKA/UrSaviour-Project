@@ -25,13 +25,13 @@ pip install -r requirements.txt
 
 3) Add environment variables (create `.env` in `AILucky/`)
 ```dotenv
-# Required for OpenAI
+# Required for OpenAI - Create and use your own Open API Key 
 OPENAI_API_KEY=sk-...
 
 # Optional: control console log level: DEBUG|INFO|WARNING|ERROR
 LOG_LEVEL=WARNING
 
-# Optional: enable S3 ingestion at startup
+#enable S3 ingestion at startup - Using the .env.example for information bellow 
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_DEFAULT_REGION=ap-southeast-2

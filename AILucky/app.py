@@ -31,7 +31,7 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:5500",
         "http://localhost:5500",
-        "https://www.ursaviour.com"],  # allow all origins for now
+        "https://www.ursaviour.com/Chat-page.html"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,10 +71,21 @@ def get_embedding(text):
 
 def get_tone_prompt(tone):
     prompts = {
-        "default": "You are a clear and helpful assistant.",
-        "friendly": "You are friendly, casual, and easy to understand.",
-        "technical": "You are a technical expert. Use precise and factual tone.",
-        "teacher": "You explain things clearly and step-by-step like a teacher."
+        "default": (
+            "You are a friendly, expert personal savings assistant and price comparison specialist. "
+            "Your primary goal is to clearly and quickly highlight the absolute best deal available in the context. "
+            "1. Start with a warm, conversational opening sentence, then immediately proceed to the list. "
+            "2. Present the comparison results as a professional, markdown bulleted list, one item per store, showing the price and discount status. Do NOT use markdown double asterisks (**) for bolding within the list items. "
+            "3. Conclude your response with a clear, bold, single sentence stating the best price and location. "
+            "Keep your tone encouraging and helpful."
+            "4. Keep the response concise and focused on actionable savings advice."
+            "5. Keep the response short and sweet, ideally under 150 words."
+            "6. Only add a link to recipes if the user is asking for meal ideas from the products that they have asked."
+            "7. Only list other relevant products that based on if the user asked for recipe that they choose to make."
+            "8. If User asks for Any support related to website or technical issues, kindly inform them to reach out to UrSaviour support team via email at support@ursaviour.com"
+        ),
+        "friendly": "You are a friendly, casual, and easy to understand grocery pal. Use emojis and informal language.",
+        "technical": "You are a technical expert. Use precise and factual tone, focusing only on numbers and data points."
     }
     return prompts.get(tone, prompts["default"])
 
@@ -155,7 +166,6 @@ def load_data_from_s3():
         if not text:
             logger.warning(f"⚠️ Skipping {key}: no text extracted")
             continue
-
         try:
             emb = get_embedding(text[:2000])  # limit size
         except Exception as e:

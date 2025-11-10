@@ -1,19 +1,25 @@
-// js/chatbot.js
+// js/chatbot.js (enhanced with typing indicator, tone selection, agent status, typewriter effect)
 document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.getElementById("Input-AI");
   const sendButton = document.querySelector(".chat-send-button");
   const chatContainer = document.querySelector(".chat-container");
+  const agentStatus = document.getElementById("agentStatus");
+  const statusDot = document.querySelector(".status-dot");
+  let conversationId = null;
+  const resolveUserId = () => {
+    try {
+      return window.USER_ID || localStorage.getItem('userId') || null;
+    } catch { return window.USER_ID || null; }
+  };
 
   if (!chatInput || !sendButton || !chatContainer) {
     console.warn("[Chat] Required elements not found; skipping init.");
     return;
   }
 
-  // Decide backend base URL (local dev vs prod)
   const isLocal = ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
-  const API_BASE = isLocal ? "http://127.0.0.1:8000" : ""; // use same-origin in prod
+  const API_BASE = isLocal ? "http://127.0.0.1:8000" : ""; // same-origin in prod
 
-  // Create box to show messages above the input row
   const chatBox = document.createElement("div");
   chatBox.className = "chat-box";
   chatBox.style.display = "flex";
@@ -21,59 +27,115 @@ document.addEventListener("DOMContentLoaded", () => {
   chatBox.style.marginBottom = "5px";
   chatBox.style.maxHeight = "60vh";
   chatBox.style.overflowY = "auto";
-  // Insert the chat messages container BEFORE the input row
   chatContainer.parentNode.insertBefore(chatBox, chatContainer);
 
-  // Append messages
-  function appendMessage(sender, message) {
+  function appendMessage(sender, text, progressive=false){
     const msg = document.createElement("div");
     msg.className = `chat-message ${sender}`;
-    // Styling is handled via CSS classes in Chat-page.html
-
-    msg.textContent = message;
+    if(!progressive){
+      msg.textContent = text;
+    } else {
+      typewriter(msg, text);
+    }
     chatBox.appendChild(msg);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  async function sendMessage() {
-    const userInput = chatInput.value.trim();
-    if (!userInput) return;
+  function typewriter(el, full){
+    let i=0; const total = full.length;
+    const step = Math.max(1, Math.ceil(total/180)); // adaptive pacing
+    function tick(){
+      el.textContent = full.slice(0,i);
+      i += step;
+      if(i <= total){
+        chatBox.scrollTop = chatBox.scrollHeight;
+        requestAnimationFrame(tick);
+      } else {
+        el.textContent = full;
+      }
+    }
+    tick();
+  }
 
+  function showTyping(){
+    if(document.getElementById("typingIndicatorDynamic")) return;
+    const ind = document.createElement("div");
+    ind.className = "typing-indicator";
+    ind.id = "typingIndicatorDynamic";
+    ind.innerHTML = "<span></span><span></span><span></span>";
+    chatBox.appendChild(ind);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function removeTyping(){
+    const ind = document.getElementById("typingIndicatorDynamic");
+    if(ind) ind.remove();
+  }
+
+  function setBusy(){
+    if(agentStatus) agentStatus.textContent = "Thinking…";
+    if(statusDot) statusDot.classList.add("busy");
+  }
+  function clearBusy(){
+    if(agentStatus) agentStatus.textContent = "Online";
+    if(statusDot) statusDot.classList.remove("busy");
+  }
+
+  // Initial greeting
+  appendMessage("bot", "Hi, I'm your AI shopping assistant. Welcome to our Saviour grocery assistant! How can I help you today?");
+
+  async function sendMessage(){
+    const userInput = chatInput.value.trim();
+    if(!userInput) return;
     appendMessage("user", userInput);
     chatInput.value = "";
+    setBusy();
+    showTyping();
 
-    // Loading placeholder
-    appendMessage("bot", "Thinking...");
-
-    try {
+    try{
+      const userId = resolveUserId();
       const response = await fetch(`${API_BASE}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userInput }),
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ message: userInput, userId, conversationId })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
+      if(!response.ok){ throw new Error(`HTTP ${response.status}`); }
       const data = await response.json();
+      removeTyping();
+      clearBusy();
       const botReply = data.answer || data.reply || data.message || "Sorry, I couldn’t understand that.";
-
-      // Remove the "Thinking..." message
-      if (chatBox.lastChild) chatBox.lastChild.remove();
-      appendMessage("bot", botReply);
-    } catch (error) {
-      if (chatBox.lastChild) chatBox.lastChild.remove();
+      if (data.conversationId) { conversationId = data.conversationId; }
+      appendMessage("bot", botReply, true);
+    } catch(err){
+      console.error("[Chat] error:", err);
+      removeTyping();
+      clearBusy();
       appendMessage("bot", "⚠️ Connection error. Please check your backend.");
-      console.error("[Chat] error:", error);
     }
   }
 
   sendButton.addEventListener("click", sendMessage);
-  chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  chatInput.addEventListener("keydown", e => {
+    if(e.key === "Enter" && !e.shiftKey){
       e.preventDefault();
       sendMessage();
     }
   });
 });
+
+// Functionality to change the background color in the chat page - Theme Toggle
+const themeToggle = document.getElementById("themeToggle");
+if (themeToggle) {
+  const updateIcon = () => {
+    const dark = document.documentElement.classList.contains("dark-mode");
+    themeToggle.textContent = dark ? "☀️" : "🌙";
+    themeToggle.setAttribute('aria-pressed', String(dark));
+    themeToggle.setAttribute('title', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  };
+  themeToggle.addEventListener("click", () => {
+    document.documentElement.classList.toggle("dark-mode");
+    document.body.classList.toggle("dark-mode"); // maintain compatibility if body styles rely on it
+    updateIcon();
+  });
+  updateIcon();
+}
