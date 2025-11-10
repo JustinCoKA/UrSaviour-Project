@@ -19,5 +19,4 @@ apscheduler==3.10.4
 watchdog==5.0.2
 reportlab==4.2.5
 pdfplumber==0.11.4
-cd backend
-pip install fastapi uvicorn mysql-connector-python
+mysql-connector-python==8.0.33
