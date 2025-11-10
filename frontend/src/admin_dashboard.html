@@ -124,5 +124,56 @@
   <script src="js/include.js" defer></script>
   <script src="js/chat-toggle.js" defer></script>
   <script src="js/main.js" defer></script>
+  <script>
+    // Simple client to load users and render the table.
+    // If you need to change API origin, edit API_BASE below.
+    const API_BASE = 'http://localhost:8000/api/v1';
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const loading = document.getElementById('users-loading');
+      const errorEl = document.getElementById('users-error');
+      const tbody = document.getElementById('users-tbody');
+      if (!tbody) return;
+      loading.style.display = 'block';
+      try {
+        const res = await fetch(`${API_BASE}/users/users`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Failed to load: HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        tbody.innerHTML = '';
+        (data || []).forEach(u => {
+          const tr = document.createElement('tr');
+          const userId = u.userId || u.user_id || '';
+          const firstName = u.firstName || u.first_name || '';
+          const lastName = u.lastName || u.last_name || '';
+          const createdAt = u.createdAt || u.created_at || '';
+          tr.innerHTML = `
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(userId)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(u.email)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(firstName)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(lastName)}</td>
+            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(createdAt)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+        errorEl.textContent = 'Failed to load users: ' + (e.message || e);
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
