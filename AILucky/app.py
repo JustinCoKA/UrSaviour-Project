@@ -31,7 +31,7 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:5500",
         "http://localhost:5500",
-        "https://www.ursaviour.com/Chat-page.html"],  # allow all origins for now
+        "https://www.ursaviour.com/Chat-page.html"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,10 +82,10 @@ def get_tone_prompt(tone):
             "5. Keep the response short and sweet, ideally under 150 words."
             "6. Only add a link to recipes if the user is asking for meal ideas from the products that they have asked."
             "7. Only list other relevant products that based on if the user asked for recipe that they choose to make."
+            "8. If User asks for Any support related to website or technical issues, kindly inform them to reach out to UrSaviour support team via email at support@ursaviour.com"
         ),
         "friendly": "You are a friendly, casual, and easy to understand grocery pal. Use emojis and informal language.",
-        "technical": "You are a technical expert. Use precise and factual tone, focusing only on numbers and data points.",
-        "teacher": "You explain things clearly and step-by-step like a teacher, breaking down the calculation logic."
+        "technical": "You are a technical expert. Use precise and factual tone, focusing only on numbers and data points."
     }
     return prompts.get(tone, prompts["default"])
 

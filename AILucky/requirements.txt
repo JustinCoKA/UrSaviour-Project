@@ -7,3 +7,4 @@ pandas
 PyPDF2
 jinja2
 python-dotenv
+mysql-connector-python

@@ -5,6 +5,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatContainer = document.querySelector(".chat-container");
   const agentStatus = document.getElementById("agentStatus");
   const statusDot = document.querySelector(".status-dot");
+  let conversationId = null;
+  const resolveUserId = () => {
+    try {
+      return window.USER_ID || localStorage.getItem('userId') || null;
+    } catch { return window.USER_ID || null; }
+  };
 
   if (!chatInput || !sendButton || !chatContainer) {
     console.warn("[Chat] Required elements not found; skipping init.");
@@ -76,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Initial greeting
-  appendMessage("bot", "Hi, welcome to our Saviour grocery assistant! How can I help you today?");
+  appendMessage("bot", "Hi, I'm your AI shopping assistant. Welcome to our Saviour grocery assistant! How can I help you today?");
 
   async function sendMessage(){
     const userInput = chatInput.value.trim();
@@ -87,16 +93,18 @@ document.addEventListener("DOMContentLoaded", () => {
     showTyping();
 
     try{
+      const userId = resolveUserId();
       const response = await fetch(`${API_BASE}/chat`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ message: userInput })
+        body: JSON.stringify({ message: userInput, userId, conversationId })
       });
       if(!response.ok){ throw new Error(`HTTP ${response.status}`); }
       const data = await response.json();
       removeTyping();
       clearBusy();
       const botReply = data.answer || data.reply || data.message || "Sorry, I couldn’t understand that.";
+      if (data.conversationId) { conversationId = data.conversationId; }
       appendMessage("bot", botReply, true);
     } catch(err){
       console.error("[Chat] error:", err);
@@ -115,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Theme toggle (icon-only) -> affects page background only
+// Functionality to change the background color in the chat page - Theme Toggle
 const themeToggle = document.getElementById("themeToggle");
 if (themeToggle) {
   const updateIcon = () => {
