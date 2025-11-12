@@ -99,9 +99,9 @@
     }
     
     .tab-button.active {
-      background-color: #007bff;
+      background-color: #004d40;;
       color: white;
-      border-color: #007bff;
+      border-color: #004d40;;
     }
     
     .tab-content {
@@ -110,6 +110,38 @@
   </style>
 
   <script>
+    // Check admin access on page load
+    const ADMIN_EMAIL = 'admin@admin.com';
+    
+    function checkAdminAccess() {
+      const token = localStorage.getItem('access_token');
+      const userStr = localStorage.getItem('user');
+      
+      if (!token || !userStr) {
+        window.location.href = 'adminlogin.html';
+        return false;
+      }
+      
+      try {
+        const user = JSON.parse(userStr);
+        if (user.email !== ADMIN_EMAIL) {
+          alert('Access denied. This page is for administrators only.');
+          window.location.href = 'index.html';
+          return false;
+        }
+      } catch (e) {
+        window.location.href = 'adminlogin.html';
+        return false;
+      }
+      
+      return true;
+    }
+    
+    // Check access immediately
+    if (!checkAdminAccess()) {
+      throw new Error('Access denied');
+    }
+    
     // API Base URL
     const getBaseURL = () => {
       return window.location.hostname === 'www.ursaviour.com' || window.location.hostname === 'ursaviour.com'
