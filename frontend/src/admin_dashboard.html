@@ -17,30 +17,131 @@
   <main>
     <section class="hero">
       <h1>Admin Dashboard</h1>
-      <p>Manage user accounts and view system information</p>
+      <p>Manage user accounts and product information</p>
     </section>
+    
+    <!-- Tab Navigation -->
     <section class="main-content">
-      <h2>User Accounts</h2>
-      <div id="loading">Loading user data...</div>
-      <div id="error" style="display: none; color: red;"></div>
-      <table id="userTable" style="width: 100%; border-collapse: collapse; display: none;">
-        <thead>
-          <tr style="background-color: #f0f0f0;">
-            <th style="border: 1px solid #ddd; padding: 8px;">User ID</th>
-            <th style="border: 1px solid #ddd; padding: 8px;">Email</th>
-            <th style="border: 1px solid #ddd; padding: 8px;">First Name</th>
-            <th style="border: 1px solid #ddd; padding: 8px;">Last Name</th>
-            <th style="border: 1px solid #ddd; padding: 8px;">Created At</th>
-          </tr>
-        </thead>
-        <tbody id="userTableBody">
-          <!-- User rows will be inserted here -->
-        </tbody>
-      </table>
+      <div class="tab-container" style="margin-bottom: 20px;">
+        <button class="tab-button active" onclick="switchTab('users')" id="usersTab">
+          User Accounts
+        </button>
+        <button class="tab-button" onclick="switchTab('products')" id="productsTab">
+          Products
+        </button>
+      </div>
+      
+      <!-- Users Tab Content -->
+      <div id="usersContent" class="tab-content">
+        <h2>User Accounts</h2>
+        <div id="loading">Loading user data...</div>
+        <div id="error" style="display: none; color: red;"></div>
+        <table id="userTable" style="width: 100%; border-collapse: collapse; display: none;">
+          <thead>
+            <tr style="background-color: #f0f0f0;">
+              <th style="border: 1px solid #ddd; padding: 8px;">User ID</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Email</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">First Name</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Last Name</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Created At</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <!-- User rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Products Tab Content -->
+      <div id="productsContent" class="tab-content" style="display: none;">
+        <h2>Products</h2>
+        <div id="productsLoading">Loading products data...</div>
+        <div id="productsError" style="display: none; color: red;"></div>
+        <table id="productsTable" style="width: 100%; border-collapse: collapse; display: none;">
+          <thead>
+            <tr style="background-color: #f0f0f0;">
+              <th style="border: 1px solid #ddd; padding: 8px;">Product ID</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Product Name</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Category</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Unit Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Special Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Store</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody">
+            <!-- Product rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
   
+  <style>
+    .tab-container {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 10px;
+    }
+    
+    .tab-button {
+      padding: 10px 20px;
+      background-color: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 5px 5px 0 0;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    
+    .tab-button:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .tab-button.active {
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+    }
+    
+    .tab-content {
+      margin-top: 20px;
+    }
+  </style>
+
   <script>
+    // API Base URL
+    const getBaseURL = () => {
+      return window.location.hostname === 'www.ursaviour.com' || window.location.hostname === 'ursaviour.com'
+        ? 'https://api.ursaviour.com/api/v1'
+        : 'http://localhost:8000/api/v1';
+    };
+    
+    // Tab switching function
+    function switchTab(tab) {
+      const usersTab = document.getElementById('usersTab');
+      const productsTab = document.getElementById('productsTab');
+      const usersContent = document.getElementById('usersContent');
+      const productsContent = document.getElementById('productsContent');
+      
+      if (tab === 'users') {
+        usersTab.classList.add('active');
+        productsTab.classList.remove('active');
+        usersContent.style.display = 'block';
+        productsContent.style.display = 'none';
+      } else if (tab === 'products') {
+        usersTab.classList.remove('active');
+        productsTab.classList.add('active');
+        usersContent.style.display = 'none';
+        productsContent.style.display = 'block';
+        
+        // Load products if not already loaded
+        if (!window.productsLoaded) {
+          loadProducts();
+        }
+      }
+    }
+    
     // Fetch users from API and display in table
     async function loadUsers() {
       const loadingEl = document.getElementById('loading');
@@ -56,11 +157,7 @@
           return;
         }
         
-        // API endpoint - use localhost:8000 for development
-        const baseURL = window.location.hostname === 'www.ursaviour.com' || window.location.hostname === 'ursaviour.com'
-          ? 'https://api.ursaviour.com/api/v1'
-          : 'http://localhost:8000/api/v1';
-        
+        const baseURL = getBaseURL();
         const response = await fetch(`${baseURL}/users/users`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -109,6 +206,54 @@
       }
     }
     
+    // Fetch products from API and display in table
+    async function loadProducts() {
+      const loadingEl = document.getElementById('productsLoading');
+      const errorEl = document.getElementById('productsError');
+      const tableEl = document.getElementById('productsTable');
+      const tbodyEl = document.getElementById('productsTableBody');
+      
+      try {
+        const baseURL = getBaseURL();
+        const response = await fetch(`${baseURL}/products/`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const products = await response.json();
+        
+        // Clear loading message
+        loadingEl.style.display = 'none';
+        
+        // Show table
+        tableEl.style.display = 'table';
+        
+        // Populate table
+        tbodyEl.innerHTML = '';
+        products.forEach(product => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="border: 1px solid #ddd; padding: 8px;">${product.productId || product.product_id || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${product.productName || product.product_name || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">$${product.unitPrice || product.unit_price || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">$${product.specialPrice || product.special_price || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${product.store || 'N/A'}</td>
+          `;
+          tbodyEl.appendChild(row);
+        });
+        
+        window.productsLoaded = true;
+        
+      } catch (error) {
+        console.error('Error loading products:', error);
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'Failed to load products data: ' + error.message;
+        errorEl.style.display = 'block';
+      }
+    }
+    
     // Load users when page loads
     document.addEventListener('DOMContentLoaded', loadUsers);
   </script>
@@ -124,56 +269,5 @@
   <script src="js/include.js" defer></script>
   <script src="js/chat-toggle.js" defer></script>
   <script src="js/main.js" defer></script>
-  <script>
-    // Simple client to load users and render the table.
-    // If you need to change API origin, edit API_BASE below.
-    const API_BASE = 'http://localhost:8000/api/v1';
-
-    function escapeHtml(str) {
-      return String(str ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      const loading = document.getElementById('users-loading');
-      const errorEl = document.getElementById('users-error');
-      const tbody = document.getElementById('users-tbody');
-      if (!tbody) return;
-      loading.style.display = 'block';
-      try {
-        const res = await fetch(`${API_BASE}/users/users`);
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `Failed to load: HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        tbody.innerHTML = '';
-        (data || []).forEach(u => {
-          const tr = document.createElement('tr');
-          const userId = u.userId || u.user_id || '';
-          const firstName = u.firstName || u.first_name || '';
-          const lastName = u.lastName || u.last_name || '';
-          const createdAt = u.createdAt || u.created_at || '';
-          tr.innerHTML = `
-            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(userId)}</td>
-            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(u.email)}</td>
-            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(firstName)}</td>
-            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(lastName)}</td>
-            <td style="padding:6px 4px;border-bottom:1px solid #f0f0f0">${escapeHtml(createdAt)}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (e) {
-        console.error(e);
-        errorEl.textContent = 'Failed to load users: ' + (e.message || e);
-      } finally {
-        loading.style.display = 'none';
-      }
-    });
-  </script>
 </body>
 </html>
