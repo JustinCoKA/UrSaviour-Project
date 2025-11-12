@@ -345,8 +345,8 @@ function cardHTML(item) {
         <div class="store-prices">
           ${storePriceRows}
         </div>
-        <button class="btn-watchlist" onclick="toggleWatchlist('${item.id}')">
-          Add to Watchlist
+        <button class="btn-view-stores" onclick="openCartDrawer('${item.id}')">
+          View Stores
         </button>
       </div>
     </div>
@@ -446,7 +446,83 @@ function toggleWatchlist(productId) {
   }
   
   saveWatchlist(watchlist);
+  // Update heart buttons in side cart if open
+  try { updateSideCartHearts(); } catch {}
 }
+
+// ===== Side Cart (Information Drawer) =====
+function isInWatchlist(productId) {
+  const list = getWatchlist();
+  return Array.isArray(list) && list.includes(productId);
+}
+
+function openCartDrawer(productId) {
+  const product = PRODUCTS.find(p => String(p.id) === String(productId));
+  if (!product) {
+    showBanner('Product not found for side cart', 'error');
+    return;
+  }
+
+  const drawer = document.getElementById('side-cart-drawer');
+  const body = document.getElementById('cart-contents');
+  if (!drawer || !body) return;
+
+  // Build up to 4 store rows
+  const stores = (product.stores || []).slice(0, 4);
+  if (stores.length === 0) {
+    body.innerHTML = '<p>No store pricing available for this item.</p>';
+  } else {
+    body.innerHTML = `
+      <div class="cart-product-head">
+        <strong>${escapeHTML(product.name)}</strong>
+        <div class="mini-note">Showing up to 4 stores</div>
+      </div>
+      ${stores.map(s => {
+        const current = formatPrice(s.price);
+        const original = s.original_price ? formatPrice(s.original_price) : null;
+        return `
+          <div class="store-row" data-product-id="${escapeHTML(product.id)}">
+            <div class="brand">${escapeHTML(s.brand)}</div>
+            <div class="prices">
+              ${original ? `<span class="original">$${original}</span>` : ''}
+              <span class="current">$${current}</span>
+            </div>
+            <button class="heart-btn" aria-label="Toggle watchlist" data-product-id="${escapeHTML(product.id)}">❤</button>
+          </div>
+        `;
+      }).join('')}
+    `;
+  }
+
+  // Mark heart buttons according to watchlist
+  updateSideCartHearts();
+
+  // Open drawer
+  drawer.classList.add('open');
+}
+
+function closeCartDrawer() {
+  const drawer = document.getElementById('side-cart-drawer');
+  if (drawer) drawer.classList.remove('open');
+}
+
+function updateSideCartHearts() {
+  const hearts = document.querySelectorAll('#side-cart-drawer .heart-btn');
+  hearts.forEach(btn => {
+    const pid = btn.getAttribute('data-product-id');
+    if (isInWatchlist(pid)) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+}
+
+// Event delegation for heart buttons inside drawer
+document.addEventListener('click', (e) => {
+  const target = e.target;
+  if (target && target.matches && target.matches('#side-cart-drawer .heart-btn')) {
+    const pid = target.getAttribute('data-product-id');
+    if (pid) toggleWatchlist(pid);
+  }
+});
 
 // ===== Event Handlers =====
 function setupEventHandlers() {

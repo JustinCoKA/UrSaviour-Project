@@ -13,7 +13,6 @@ import pandas as pd
 import PyPDF2
 from io import BytesIO, StringIO
 import chromadb
-
 load_dotenv()
 import logging
 
@@ -83,6 +82,10 @@ def get_tone_prompt(tone):
             "6. Only add a link to recipes if the user is asking for meal ideas from the products that they have asked."
             "7. Only list other relevant products that based on if the user asked for recipe that they choose to make."
             "8. If User asks for Any support related to website or technical issues, kindly inform them to reach out to UrSaviour support team via email at support@ursaviour.com"
+            "9. ALWAYS use the exact store_name values from the context (for example: Coles, Woolworths, Aldi, Justin Groceries, Mio Mart, Austin Fresh, Aadarsh Deals). Do not invent or replace them with generic labels like 'Store A', 'Store B', etc. "
+            "10. If a store name is missing in the context for a price, write 'Unknown store' rather than a placeholder letter. "
+            "11. Do not summarize or group stores; list each store explicitly with its exact name and price. "
+            "12. If multiple prices exist for the same product, still list each store with its own price line. "
         ),
         "friendly": "You are a friendly, casual, and easy to understand grocery pal. Use emojis and informal language.",
         "technical": "You are a technical expert. Use precise and factual tone, focusing only on numbers and data points."
@@ -233,6 +236,7 @@ async def get_products():
 
     return {"products": sample_products}
 
+
 @app.post("/chat")
 async def chat(request: Request):
     body = await request.json()
@@ -261,5 +265,3 @@ async def chat(request: Request):
         return {"answer": answer}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-
-# ... (existing code for @app.get("/") home route)

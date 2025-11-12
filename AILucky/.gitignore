@@ -1,0 +1,23 @@
+# --- General Operating System Files ---
+.DS_Store # Mac operating system file
+Thumbs.db # Windows thumbnail cache
+
+# --- Python Environment Files ---
+__pycache__/
+*.pyc
+venv/
+.env/
+
+# --- Environment/Configuration (CRITICAL) ---
+.env # Your main secrets file with paths and API keys
+*.json # Often used for generated files or credentials
+!package.json # EXCEPTION: You usually want to track package files like this
+
+# --- Database Files (CRITICAL) ---
+# Your downloaded Firebase Service Account Key
+# Adjust path if you placed it inside a 'backend' directory
+firebase-service-key.json 
+backend/firebase-service-key.json 
+
+# Chroma DB files (automatically generated database)
+chroma_db/
