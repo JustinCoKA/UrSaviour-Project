@@ -362,17 +362,22 @@
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const jobs = await response.json();
+        const data = await response.json();
         
         // Clear loading message
         loadingEl.style.display = 'none';
+        
+        // Check if data is an array
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received from API');
+        }
         
         // Show table
         tableEl.style.display = 'table';
         
         // Populate table
         tbodyEl.innerHTML = '';
-        jobs.forEach(job => {
+        data.forEach(job => {
           const row = document.createElement('tr');
           
           // Format dates
@@ -392,11 +397,11 @@
           row.innerHTML = `
             <td style="border: 1px solid #ddd; padding: 8px;">${job.jobNumber || job.jobId || 'N/A'}</td>
             <td style="border: 1px solid #ddd; padding: 8px;">${job.jobType || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${job.sourceFile || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${job.sourceFile || job.sourceIdentifier || 'N/A'}">${job.sourceFile || job.sourceIdentifier || 'N/A'}</td>
             <td style="border: 1px solid #ddd; padding: 8px;"><span style="${statusStyle}">${job.overallStatus || 'N/A'}</span></td>
             <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${startTime}</td>
             <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${endTime}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemProcessed || 0}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemExtracted || job.totalItemProcessed || 0}</td>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemLoaded || 0}</td>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemFailed || 0}</td>
           `;
