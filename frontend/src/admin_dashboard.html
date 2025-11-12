@@ -29,6 +29,9 @@
         <button class="tab-button" onclick="switchTab('products')" id="productsTab">
           Products
         </button>
+        <button class="tab-button" onclick="switchTab('etljobs')" id="etlJobsTab">
+          ETL Jobs
+        </button>
       </div>
       
       <!-- Users Tab Content -->
@@ -70,6 +73,31 @@
           </thead>
           <tbody id="productsTableBody">
             <!-- Product rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- ETL Jobs Tab Content -->
+      <div id="etlJobsContent" class="tab-content" style="display: none;">
+        <h2>ETL Jobs</h2>
+        <div id="etlJobsLoading">Loading ETL jobs data...</div>
+        <div id="etlJobsError" style="display: none; color: red;"></div>
+        <table id="etlJobsTable" style="width: 100%; border-collapse: collapse; display: none;">
+          <thead>
+            <tr style="background-color: #f0f0f0;">
+              <th style="border: 1px solid #ddd; padding: 8px;">Job #</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Type</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Source File</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Status</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Start Time</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">End Time</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Processed</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Loaded</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Failed</th>
+            </tr>
+          </thead>
+          <tbody id="etlJobsTableBody">
+            <!-- ETL job rows will be inserted here -->
           </tbody>
         </table>
       </div>
@@ -153,23 +181,39 @@
     function switchTab(tab) {
       const usersTab = document.getElementById('usersTab');
       const productsTab = document.getElementById('productsTab');
+      const etlJobsTab = document.getElementById('etlJobsTab');
       const usersContent = document.getElementById('usersContent');
       const productsContent = document.getElementById('productsContent');
+      const etlJobsContent = document.getElementById('etlJobsContent');
+      
+      // Remove active class from all tabs
+      usersTab.classList.remove('active');
+      productsTab.classList.remove('active');
+      etlJobsTab.classList.remove('active');
+      
+      // Hide all content
+      usersContent.style.display = 'none';
+      productsContent.style.display = 'none';
+      etlJobsContent.style.display = 'none';
       
       if (tab === 'users') {
         usersTab.classList.add('active');
-        productsTab.classList.remove('active');
         usersContent.style.display = 'block';
-        productsContent.style.display = 'none';
       } else if (tab === 'products') {
-        usersTab.classList.remove('active');
         productsTab.classList.add('active');
-        usersContent.style.display = 'none';
         productsContent.style.display = 'block';
         
         // Load products if not already loaded
         if (!window.productsLoaded) {
           loadProducts();
+        }
+      } else if (tab === 'etljobs') {
+        etlJobsTab.classList.add('active');
+        etlJobsContent.style.display = 'block';
+        
+        // Load ETL jobs if not already loaded
+        if (!window.etlJobsLoaded) {
+          loadETLJobs();
         }
       }
     }
@@ -299,6 +343,72 @@
         console.error('Error loading products:', error);
         loadingEl.style.display = 'none';
         errorEl.textContent = 'Failed to load products data: ' + error.message;
+        errorEl.style.display = 'block';
+      }
+    }
+    
+    // Fetch ETL jobs from API and display in table
+    async function loadETLJobs() {
+      const loadingEl = document.getElementById('etlJobsLoading');
+      const errorEl = document.getElementById('etlJobsError');
+      const tableEl = document.getElementById('etlJobsTable');
+      const tbodyEl = document.getElementById('etlJobsTableBody');
+      
+      try {
+        const baseURL = getBaseURL();
+        const response = await fetch(`${baseURL}/admin/etl-jobs`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const jobs = await response.json();
+        
+        // Clear loading message
+        loadingEl.style.display = 'none';
+        
+        // Show table
+        tableEl.style.display = 'table';
+        
+        // Populate table
+        tbodyEl.innerHTML = '';
+        jobs.forEach(job => {
+          const row = document.createElement('tr');
+          
+          // Format dates
+          const startTime = job.startTime ? new Date(job.startTime).toLocaleString() : 'N/A';
+          const endTime = job.endTime ? new Date(job.endTime).toLocaleString() : '-';
+          
+          // Status badge styling
+          let statusStyle = '';
+          if (job.overallStatus === 'completed') {
+            statusStyle = 'background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px;';
+          } else if (job.overallStatus === 'failed') {
+            statusStyle = 'background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px;';
+          } else if (job.overallStatus === 'running') {
+            statusStyle = 'background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px;';
+          }
+          
+          row.innerHTML = `
+            <td style="border: 1px solid #ddd; padding: 8px;">${job.jobNumber || job.jobId || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${job.jobType || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${job.sourceFile || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;"><span style="${statusStyle}">${job.overallStatus || 'N/A'}</span></td>
+            <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${startTime}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${endTime}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemProcessed || 0}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemLoaded || 0}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemFailed || 0}</td>
+          `;
+          tbodyEl.appendChild(row);
+        });
+        
+        window.etlJobsLoaded = true;
+        
+      } catch (error) {
+        console.error('Error loading ETL jobs:', error);
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'Failed to load ETL jobs data: ' + error.message;
         errorEl.style.display = 'block';
       }
     }
