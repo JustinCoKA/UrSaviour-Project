@@ -28,39 +28,47 @@ def get_etl_jobs(db: Session = Depends(get_db)):
     try:
         _ensure_etl_tables()
         
-        # Query all ETL jobs, ordered by most recent first
-        query = select(
-            ETLJobs.c.jobId,
-            ETLJobs.c.jobNumber,
-            ETLJobs.c.jobType,
-            ETLJobs.c.sourceFile,
-            ETLJobs.c.startTime,
-            ETLJobs.c.endTime,
-            ETLJobs.c.overallStatus,
-            ETLJobs.c.totalItemProcessed,
-            ETLJobs.c.totalItemLoaded,
-            ETLJobs.c.totalItemFailed,
-            ETLJobs.c.errorLog
-        ).order_by(ETLJobs.c.startTime.desc()).limit(100)
+        # Get available columns dynamically
+        available_cols = {col.name for col in ETLJobs.columns}
+        logger.info(f"Available columns in etlJobs table: {available_cols}")
         
+        # Build query with only available columns
+        select_cols = []
+        col_mapping = {
+            'jobId': 'jobId',
+            'jobNumber': 'jobNumber',
+            'jobType': 'jobType',
+            'sourceFile': 'sourceFile',
+            'sourceIdentifier': 'sourceIdentifier',
+            'startTime': 'startTime',
+            'endTime': 'endTime',
+            'overallStatus': 'overallStatus',
+            'totalItemExtracted': 'totalItemExtracted',
+            'totalItemLoaded': 'totalItemLoaded',
+            'totalItemFailed': 'totalItemFailed',
+            'errorLog': 'errorLog'
+        }
+        
+        for col_name in col_mapping.keys():
+            if col_name in available_cols:
+                select_cols.append(ETLJobs.c[col_name])
+        
+        query = select(*select_cols).order_by(ETLJobs.c.startTime.desc()).limit(100)
         result = db.execute(query).fetchall()
         
         # Convert to list of dicts
         jobs = []
         for row in result:
-            jobs.append({
-                "jobId": row.jobId,
-                "jobNumber": row.jobNumber,
-                "jobType": row.jobType,
-                "sourceFile": row.sourceFile,
-                "startTime": row.startTime.isoformat() if row.startTime else None,
-                "endTime": row.endTime.isoformat() if row.endTime else None,
-                "overallStatus": row.overallStatus,
-                "totalItemProcessed": row.totalItemProcessed,
-                "totalItemLoaded": row.totalItemLoaded,
-                "totalItemFailed": row.totalItemFailed,
-                "errorLog": row.errorLog
-            })
+            job = {}
+            for col_name, json_name in col_mapping.items():
+                if col_name in available_cols:
+                    value = getattr(row, col_name, None)
+                    # Convert datetime to ISO format
+                    if value and col_name in ['startTime', 'endTime']:
+                        job[json_name] = value.isoformat()
+                    else:
+                        job[json_name] = value
+            jobs.append(job)
         
         return jobs
         
