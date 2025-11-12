@@ -63,8 +63,8 @@
               <th style="border: 1px solid #ddd; padding: 8px;">Product ID</th>
               <th style="border: 1px solid #ddd; padding: 8px;">Product Name</th>
               <th style="border: 1px solid #ddd; padding: 8px;">Category</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Unit Price</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Special Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Price</th>
+              <th style="border: 1px solid #ddd; padding: 8px;">Special</th>
               <th style="border: 1px solid #ddd; padding: 8px;">Store</th>
             </tr>
           </thead>
@@ -229,19 +229,36 @@
         // Show table
         tableEl.style.display = 'table';
         
-        // Populate table
+        // Populate table - flatten stores array for each product
         tbodyEl.innerHTML = '';
         products.forEach(product => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td style="border: 1px solid #ddd; padding: 8px;">${product.productId || product.product_id || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${product.productName || product.product_name || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">$${product.unitPrice || product.unit_price || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">$${product.specialPrice || product.special_price || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${product.store || 'N/A'}</td>
-          `;
-          tbodyEl.appendChild(row);
+          // Create a row for each store
+          if (product.stores && product.stores.length > 0) {
+            product.stores.forEach(store => {
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td style="border: 1px solid #ddd; padding: 8px;">${product.id || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${product.name || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">$${store.price || 'N/A'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">-</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${store.brand || 'N/A'}</td>
+              `;
+              tbodyEl.appendChild(row);
+            });
+          } else {
+            // No stores data
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="border: 1px solid #ddd; padding: 8px;">${product.id || 'N/A'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${product.name || 'N/A'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">N/A</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">-</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">N/A</td>
+            `;
+            tbodyEl.appendChild(row);
+          }
         });
         
         window.productsLoaded = true;
