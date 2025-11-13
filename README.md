@@ -37,7 +37,7 @@ cd backend
 pip install -r requirements.txt
 python main.py  # localhost:8000
 
-# Run frontend (new terminal)
+# Run frontend (new terminal windows)
 cd frontend/src
 python -m http.server 3001  # localhost:3001
 ```
