@@ -22,9 +22,12 @@
     
     <!-- Tab Navigation -->
     <section class="main-content">
-      <div class="tab-container" style="margin-bottom: 20px;">
+      <div class="tab-container">
         <button class="tab-button active" onclick="switchTab('users')" id="usersTab">
           User Accounts
+        </button>
+        <button class="tab-button" onclick="switchTab('loginlogs')" id="loginLogsTab">
+          Login Logs
         </button>
         <button class="tab-button" onclick="switchTab('products')" id="productsTab">
           Products
@@ -36,17 +39,51 @@
       
       <!-- Users Tab Content -->
       <div id="usersContent" class="tab-content">
-        <h2>User Accounts</h2>
-        <div id="loading">Loading user data...</div>
-        <div id="error" style="display: none; color: red;"></div>
-        <table id="userTable" style="width: 100%; border-collapse: collapse; display: none;">
+        <div class="admin-table-header">
+          <h2>User Accounts</h2>
+          <button onclick="showAddUserModal()" class="admin-btn-add">
+            + Add User
+          </button>
+        </div>
+        <div id="loading" class="admin-loading">Loading user data...</div>
+        <div id="error" class="admin-error"></div>
+        <table id="userTable" class="admin-table">
           <thead>
-            <tr style="background-color: #f0f0f0;">
-              <th style="border: 1px solid #ddd; padding: 8px;">User ID</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Email</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">First Name</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Last Name</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Created At</th>
+            <tr>
+              <th class="sortable" onclick="sortUserTable('userId')">
+                User ID <span id="sort-userId">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortUserTable('email')">
+                Email <span id="sort-email">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortUserTable('firstName')">
+                First Name <span id="sort-firstName">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortUserTable('lastName')">
+                Last Name <span id="sort-lastName">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortUserTable('createdAt')">
+                Created At <span id="sort-createdAt">⇅</span>
+              </th>
+              <th>Actions</th>
+            </tr>
+            <tr class="filter-row">
+              <th class="filter-cell">
+                <input type="text" id="filter-userId" placeholder="Search..." oninput="filterUsersByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-email" placeholder="Search..." oninput="filterUsersByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-firstName" placeholder="Search..." oninput="filterUsersByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-lastName" placeholder="Search..." oninput="filterUsersByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-createdAt" placeholder="Search..." oninput="filterUsersByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell"></th>
             </tr>
           </thead>
           <tbody id="userTableBody">
@@ -55,20 +92,148 @@
         </table>
       </div>
       
+      <!-- Add/Edit User Modal -->
+      <div id="userModal" class="admin-modal">
+        <div class="admin-modal-content">
+          <h3 id="userModalTitle">Add User</h3>
+          <form id="userForm" class="admin-form">
+            <input type="hidden" id="editUserId">
+            <div class="admin-form-group">
+              <label for="userEmail">Email *</label>
+              <input type="email" id="userEmail" required>
+            </div>
+            <div class="admin-form-group">
+              <label for="userFirstName">First Name *</label>
+              <input type="text" id="userFirstName" required>
+            </div>
+            <div class="admin-form-group">
+              <label for="userLastName">Last Name *</label>
+              <input type="text" id="userLastName" required>
+            </div>
+            <div id="passwordField" class="admin-form-group">
+              <label for="userPassword">Password *</label>
+              <input type="password" id="userPassword">
+            </div>
+            <div id="userModalError" class="admin-form-error"></div>
+            <div class="admin-form-actions">
+              <button type="button" onclick="closeUserModal()" class="admin-btn-cancel">
+                Cancel
+              </button>
+              <button type="submit" class="admin-btn-save">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Login Logs Tab Content -->
+      <div id="loginlogsContent" class="tab-content" style="display: none;">
+        <h2 class="admin-table-title-center">Login Logs (View Only)</h2>
+        <div id="loginLogsLoading" class="admin-loading">Loading login logs data...</div>
+        <div id="loginLogsError" class="admin-error"></div>
+        <table id="loginLogsTable" class="admin-table">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="sortLoginLogsTable('logId')">
+                Log ID <span id="sort-log-logId">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortLoginLogsTable('userId')">
+                User ID <span id="sort-log-userId">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortLoginLogsTable('email')">
+                Email <span id="sort-log-email">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortLoginLogsTable('loginTime')">
+                Login Time <span id="sort-log-loginTime">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortLoginLogsTable('ipAddress')">
+                IP Address <span id="sort-log-ipAddress">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortLoginLogsTable('userAgent')">
+                User Agent <span id="sort-log-userAgent">⇅</span>
+              </th>
+            </tr>
+            <tr class="filter-row">
+              <th class="filter-cell">
+                <input type="text" id="filter-log-logId" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-log-userId" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-log-email" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-log-loginTime" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-log-ipAddress" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-log-userAgent" placeholder="Search..." oninput="filterLoginLogsByColumn()" class="admin-search-input">
+              </th>
+            </tr>
+          </thead>
+          <tbody id="loginLogsTableBody">
+            <!-- Login log rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+      
       <!-- Products Tab Content -->
       <div id="productsContent" class="tab-content" style="display: none;">
-        <h2>Products</h2>
-        <div id="productsLoading">Loading products data...</div>
-        <div id="productsError" style="display: none; color: red;"></div>
-        <table id="productsTable" style="width: 100%; border-collapse: collapse; display: none;">
+        <div class="admin-table-header">
+          <h2>Products</h2>
+          <button onclick="showAddProductModal()" class="admin-btn-add">
+            + Add Product
+          </button>
+        </div>
+        <div id="productsLoading" class="admin-loading">Loading products data...</div>
+        <div id="productsError" class="admin-error"></div>
+        <table id="productsTable" class="admin-table">
           <thead>
-            <tr style="background-color: #f0f0f0;">
-              <th style="border: 1px solid #ddd; padding: 8px;">Product ID</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Product Name</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Category</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Price</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Special</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Store</th>
+            <tr>
+              <th class="sortable" onclick="sortProductTable('productId')">
+                Product ID <span id="sort-productId">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortProductTable('productName')">
+                Product Name <span id="sort-productName">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortProductTable('category')">
+                Category <span id="sort-category">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortProductTable('price')">
+                Price <span id="sort-price">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortProductTable('special')">
+                Special <span id="sort-special">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortProductTable('store')">
+                Store <span id="sort-store">⇅</span>
+              </th>
+              <th>Actions</th>
+            </tr>
+            <tr class="filter-row">
+              <th class="filter-cell">
+                <input type="text" id="filter-productId" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-productName" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-category" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-price" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-special" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell">
+                <input type="text" id="filter-store" placeholder="Search..." oninput="filterProductsByColumn()" class="admin-search-input">
+              </th>
+              <th class="filter-cell"></th>
             </tr>
           </thead>
           <tbody id="productsTableBody">
@@ -77,23 +242,75 @@
         </table>
       </div>
       
+      <!-- Add/Edit Product Modal -->
+      <div id="productModal" class="admin-modal">
+        <div class="admin-modal-content">
+          <h3 id="productModalTitle">Add Product</h3>
+          <form id="productForm" class="admin-form">
+            <div class="admin-form-group">
+              <label for="productName">Product Name *</label>
+              <input type="text" id="productName" required>
+            </div>
+            <div class="admin-form-group">
+              <label for="productCategory">Category</label>
+              <input type="text" id="productCategory">
+            </div>
+            <div class="admin-form-group">
+              <label for="productDescription">Description</label>
+              <textarea id="productDescription"></textarea>
+            </div>
+            <div class="admin-form-group">
+              <label for="productBasePrice">Base Price</label>
+              <input type="number" id="productBasePrice" step="0.01">
+            </div>
+            <div id="productModalError" class="admin-form-error"></div>
+            <div class="admin-form-actions">
+              <button type="button" onclick="closeProductModal()" class="admin-btn-cancel">
+                Cancel
+              </button>
+              <button type="submit" class="admin-btn-save">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
       <!-- ETL Jobs Tab Content -->
       <div id="etlJobsContent" class="tab-content" style="display: none;">
-        <h2>ETL Jobs</h2>
-        <div id="etlJobsLoading">Loading ETL jobs data...</div>
-        <div id="etlJobsError" style="display: none; color: red;"></div>
-        <table id="etlJobsTable" style="width: 100%; border-collapse: collapse; display: none;">
+        <h2 class="admin-table-title-center">ETL Jobs (View Only)</h2>
+        <div id="etlJobsLoading" class="admin-loading">Loading ETL jobs data...</div>
+        <div id="etlJobsError" class="admin-error"></div>
+        <table id="etlJobsTable" class="admin-table">
           <thead>
-            <tr style="background-color: #f0f0f0;">
-              <th style="border: 1px solid #ddd; padding: 8px;">Job #</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Type</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Source File</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Status</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Start Time</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">End Time</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Processed</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Loaded</th>
-              <th style="border: 1px solid #ddd; padding: 8px;">Failed</th>
+            <tr>
+              <th class="sortable" onclick="sortETLTable('jobId')">
+                Job No. <span id="sort-etl-jobId">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('jobType')">
+                Type <span id="sort-etl-jobType">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('sourceFile')">
+                Source File <span id="sort-etl-sourceFile">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('status')">
+                Status <span id="sort-etl-status">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('startTime')">
+                Start Time <span id="sort-etl-startTime">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('endTime')">
+                End Time <span id="sort-etl-endTime">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('processed')">
+                Processed <span id="sort-etl-processed">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('loaded')">
+                Loaded <span id="sort-etl-loaded">⇅</span>
+              </th>
+              <th class="sortable" onclick="sortETLTable('failed')">
+                Failed <span id="sort-etl-failed">⇅</span>
+              </th>
             </tr>
           </thead>
           <tbody id="etlJobsTableBody">
@@ -110,6 +327,7 @@
       gap: 10px;
       border-bottom: 2px solid #ddd;
       padding-bottom: 10px;
+      margin-bottom: 20px;
     }
     
     .tab-button {
@@ -127,13 +345,302 @@
     }
     
     .tab-button.active {
-      background-color: #004d40;;
+      background-color: #004d40;
       color: white;
-      border-color: #004d40;;
+      border-color: #004d40;
     }
     
     .tab-content {
       margin-top: 20px;
+    }
+
+    /* Admin Buttons */
+    .admin-btn-add {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      position: absolute;
+      right: 0;
+      transition: all 0.3s;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+    }
+
+    .admin-btn-add:hover {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(14, 165, 233, 0.3);
+    }
+
+    .admin-btn-edit {
+      padding: 5px 10px;
+      margin-right: 5px;
+      background-color: #f1d8c1;
+      color: #2b150d;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .admin-btn-edit:hover {
+      background-color: #f6b28b;
+    }
+
+    .admin-btn-delete {
+      padding: 5px 10px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .admin-btn-delete:hover {
+      background-color: #c82333;
+    }
+
+    .admin-btn-delete:disabled {
+      background-color: #cccccc;
+      color: #666666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .admin-btn-delete:disabled:hover {
+      background-color: #cccccc;
+    }
+
+    /* Admin Table Header */
+    .admin-table-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .admin-table-header h2 {
+      margin: 0;
+    }
+
+    .admin-table-title-center {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Admin Table Cells */
+    .admin-table-cell-actions {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    /* Admin Search Input */
+    .admin-search-input {
+      width: 95%;
+      padding: 4px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: normal;
+      box-sizing: border-box;
+    }
+
+    /* Admin Tables */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      display: none;
+    }
+
+    .admin-table.show {
+      display: table;
+    }
+
+    .admin-table thead tr {
+      background-color: #f0f0f0;
+    }
+
+    .admin-table thead tr.filter-row {
+      background-color: #f8f9fa;
+    }
+
+    .admin-table th,
+    .admin-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    .admin-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .admin-table th.filter-cell {
+      padding: 4px;
+      overflow: hidden;
+    }
+
+    /* Admin Modals */
+    .admin-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+
+    .admin-modal.show {
+      display: block;
+    }
+
+    .admin-modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      width: 400px;
+    }
+
+    .admin-modal h3 {
+      margin-top: 0;
+    }
+
+    /* Admin Form Styles */
+    .admin-form {
+      margin-top: 20px;
+    }
+
+    .admin-form-group {
+      margin-bottom: 15px;
+    }
+
+    .admin-form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .admin-form-group input,
+    .admin-form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .admin-form-group textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .admin-form-error {
+      color: red;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .admin-form-error.show {
+      display: block;
+    }
+
+    .admin-form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .admin-btn-cancel {
+      padding: 10px 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .admin-btn-cancel:hover {
+      background-color: #5a6268;
+    }
+
+    .admin-btn-save {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .admin-btn-save:hover {
+      background-color: #0056b3;
+    }
+
+    /* Admin Loading and Error Messages */
+    .admin-loading,
+    .admin-error {
+      text-align: center;
+      padding: 20px;
+      font-size: 1rem;
+    }
+
+    .admin-error {
+      display: none;
+      color: red;
+    }
+
+    .admin-error.show {
+      display: block;
+    }
+
+    /* ETL Table Specific Styles */
+    .etl-status-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .etl-status-completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .etl-status-failed {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .etl-status-running {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    /* Table Cell with Ellipsis */
+    .admin-table td.ellipsis {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .admin-table td.ellipsis-long {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .admin-table td.center {
+      text-align: center;
     }
   </style>
 
@@ -180,25 +687,37 @@
     // Tab switching function
     function switchTab(tab) {
       const usersTab = document.getElementById('usersTab');
+      const loginLogsTab = document.getElementById('loginLogsTab');
       const productsTab = document.getElementById('productsTab');
       const etlJobsTab = document.getElementById('etlJobsTab');
       const usersContent = document.getElementById('usersContent');
+      const loginLogsContent = document.getElementById('loginlogsContent');
       const productsContent = document.getElementById('productsContent');
       const etlJobsContent = document.getElementById('etlJobsContent');
       
       // Remove active class from all tabs
       usersTab.classList.remove('active');
+      loginLogsTab.classList.remove('active');
       productsTab.classList.remove('active');
       etlJobsTab.classList.remove('active');
       
       // Hide all content
       usersContent.style.display = 'none';
+      loginLogsContent.style.display = 'none';
       productsContent.style.display = 'none';
       etlJobsContent.style.display = 'none';
       
       if (tab === 'users') {
         usersTab.classList.add('active');
         usersContent.style.display = 'block';
+      } else if (tab === 'loginlogs') {
+        loginLogsTab.classList.add('active');
+        loginLogsContent.style.display = 'block';
+        
+        // Load login logs if not already loaded
+        if (!window.loginLogsLoaded) {
+          loadLoginLogs();
+        }
       } else if (tab === 'products') {
         productsTab.classList.add('active');
         productsContent.style.display = 'block';
@@ -252,33 +771,149 @@
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const users = await response.json();
+        usersData = await response.json();
         
         // Clear loading message
         loadingEl.style.display = 'none';
         
         // Show table
-        tableEl.style.display = 'table';
+        tableEl.classList.add('show');
         
-        // Populate table
-        tbodyEl.innerHTML = '';
-        users.forEach(user => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td style="border: 1px solid #ddd; padding: 8px;">${user.userId || user.user_id || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${user.email || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${user.firstName || user.first_name || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${user.lastName || user.last_name || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${user.createdAt || user.created_at || 'N/A'}</td>
-          `;
-          tbodyEl.appendChild(row);
-        });
+        // Render table
+        renderUserTable();
         
       } catch (error) {
         console.error('Error loading users:', error);
         loadingEl.style.display = 'none';
         errorEl.textContent = 'Failed to load user data: ' + error.message;
-        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
+      }
+    }
+    
+    // Sort functionality for user table
+    let userSortColumn = null;
+    let userSortDirection = 'asc';
+    let usersData = [];
+    
+    function sortUserTable(column) {
+      // Toggle sort direction if clicking same column
+      if (userSortColumn === column) {
+        userSortDirection = userSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        userSortColumn = column;
+        userSortDirection = 'asc';
+      }
+      
+      // Update sort indicators
+      document.querySelectorAll('[id^="sort-"]').forEach(el => {
+        el.textContent = '⇅';
+      });
+      document.getElementById(`sort-${column}`).textContent = userSortDirection === 'asc' ? '↑' : '↓';
+      
+      // Sort the data
+      usersData.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'userId':
+            aVal = a.userId || a.user_id || '';
+            bVal = b.userId || b.user_id || '';
+            break;
+          case 'email':
+            aVal = a.email || '';
+            bVal = b.email || '';
+            break;
+          case 'firstName':
+            aVal = a.firstName || a.first_name || '';
+            bVal = b.firstName || b.first_name || '';
+            break;
+          case 'lastName':
+            aVal = a.lastName || a.last_name || '';
+            bVal = b.lastName || b.last_name || '';
+            break;
+          case 'createdAt':
+            aVal = a.createdAt || a.created_at || '';
+            bVal = b.createdAt || b.created_at || '';
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aVal < bVal) return userSortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return userSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+      
+      // Re-render table
+      renderUserTable();
+    }
+    
+    function renderUserTable() {
+      const tbodyEl = document.getElementById('userTableBody');
+      tbodyEl.innerHTML = '';
+      
+      usersData.forEach(user => {
+        const row = document.createElement('tr');
+        const userId = user.userId || user.user_id;
+        const isAdmin = user.email === 'admin@admin.com';
+        
+        row.innerHTML = `
+          <td>${userId || 'N/A'}</td>
+          <td>${user.email || 'N/A'}</td>
+          <td>${user.firstName || user.first_name || 'N/A'}</td>
+          <td>${user.lastName || user.last_name || 'N/A'}</td>
+          <td>${user.createdAt || user.created_at || 'N/A'}</td>
+          <td class="admin-table-cell-actions">
+            <button onclick="editUser('${userId}')" class="admin-btn-edit">
+              Edit
+            </button>
+            <button ${isAdmin ? 'disabled' : `onclick="deleteUser('${userId}', '${user.email}')"`} class="admin-btn-delete">
+              Delete
+            </button>
+          </td>
+        `;
+        tbodyEl.appendChild(row);
+      });
+    }
+    
+    // Filter users by column-specific search inputs
+    function filterUsersByColumn() {
+      const tbodyEl = document.getElementById('userTableBody');
+      const rows = tbodyEl.getElementsByTagName('tr');
+      
+      // Get filter values
+      const filters = {
+        userId: document.getElementById('filter-userId').value.toLowerCase(),
+        email: document.getElementById('filter-email').value.toLowerCase(),
+        firstName: document.getElementById('filter-firstName').value.toLowerCase(),
+        lastName: document.getElementById('filter-lastName').value.toLowerCase(),
+        createdAt: document.getElementById('filter-createdAt').value.toLowerCase()
+      };
+      
+      // Filter each row
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        // Get cell values
+        const userId = cells[0] ? cells[0].textContent.toLowerCase() : '';
+        const email = cells[1] ? cells[1].textContent.toLowerCase() : '';
+        const firstName = cells[2] ? cells[2].textContent.toLowerCase() : '';
+        const lastName = cells[3] ? cells[3].textContent.toLowerCase() : '';
+        const createdAt = cells[4] ? cells[4].textContent.toLowerCase() : '';
+        
+        // Check if row matches all filters
+        const matchesUserId = !filters.userId || userId.includes(filters.userId);
+        const matchesEmail = !filters.email || email.includes(filters.email);
+        const matchesFirstName = !filters.firstName || firstName.includes(filters.firstName);
+        const matchesLastName = !filters.lastName || lastName.includes(filters.lastName);
+        const matchesCreatedAt = !filters.createdAt || createdAt.includes(filters.createdAt);
+        
+        if (matchesUserId && matchesEmail && matchesFirstName && matchesLastName && matchesCreatedAt) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
       }
     }
     
@@ -303,39 +938,36 @@
         loadingEl.style.display = 'none';
         
         // Show table
-        tableEl.style.display = 'table';
+        tableEl.classList.add('show');
         
-        // Populate table - flatten stores array for each product
-        tbodyEl.innerHTML = '';
+        // Flatten products with stores for display
+        productsData = [];
         products.forEach(product => {
-          // Create a row for each store
           if (product.stores && product.stores.length > 0) {
             product.stores.forEach(store => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td style="border: 1px solid #ddd; padding: 8px;">${product.id || 'N/A'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${product.name || 'N/A'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">$${store.price || 'N/A'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">-</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${store.brand || 'N/A'}</td>
-              `;
-              tbodyEl.appendChild(row);
+              productsData.push({
+                productId: product.id || 'N/A',
+                productName: product.name || 'N/A',
+                category: product.category || 'N/A',
+                price: store.price || 'N/A',
+                special: '-',
+                store: store.brand || 'N/A'
+              });
             });
           } else {
-            // No stores data
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td style="border: 1px solid #ddd; padding: 8px;">${product.id || 'N/A'}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${product.name || 'N/A'}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${product.category || 'N/A'}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">N/A</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">-</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">N/A</td>
-            `;
-            tbodyEl.appendChild(row);
+            productsData.push({
+              productId: product.id || 'N/A',
+              productName: product.name || 'N/A',
+              category: product.category || 'N/A',
+              price: 'N/A',
+              special: '-',
+              store: 'N/A'
+            });
           }
         });
+        
+        // Render table
+        renderProductTable();
         
         window.productsLoaded = true;
         
@@ -343,9 +975,283 @@
         console.error('Error loading products:', error);
         loadingEl.style.display = 'none';
         errorEl.textContent = 'Failed to load products data: ' + error.message;
-        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
       }
     }
+    
+    // Sort functionality for product table
+    let productSortColumn = null;
+    let productSortDirection = 'asc';
+    let productsData = [];
+    
+    function sortProductTable(column) {
+      if (productSortColumn === column) {
+        productSortDirection = productSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        productSortColumn = column;
+        productSortDirection = 'asc';
+      }
+      
+      // Update sort indicators
+      document.querySelectorAll('[id^="sort-product"], [id^="sort-category"], [id^="sort-price"], [id^="sort-special"], [id^="sort-store"]').forEach(el => {
+        el.textContent = '⇅';
+      });
+      document.getElementById(`sort-${column}`).textContent = productSortDirection === 'asc' ? '↑' : '↓';
+      
+      // Sort the data
+      productsData.sort((a, b) => {
+        let aVal = a[column] || '';
+        let bVal = b[column] || '';
+        
+        // Handle numeric sorting for price
+        if (column === 'price') {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+        } else {
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+        
+        if (aVal < bVal) return productSortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return productSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+      
+      renderProductTable();
+    }
+    
+    function renderProductTable() {
+      const tbodyEl = document.getElementById('productsTableBody');
+      tbodyEl.innerHTML = '';
+      
+      productsData.forEach(product => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${product.productId}</td>
+          <td>${product.productName}</td>
+          <td>${product.category}</td>
+          <td>${product.price !== 'N/A' ? '$' + product.price : 'N/A'}</td>
+          <td>${product.special}</td>
+          <td>${product.store}</td>
+          <td class="admin-table-cell-actions">
+            <button onclick="editProduct(${product.productId})" class="admin-btn-edit">
+              Edit
+            </button>
+            <button onclick="deleteProduct(${product.productId}, '${product.productName}')" class="admin-btn-delete">
+              Delete
+            </button>
+          </td>
+        `;
+        tbodyEl.appendChild(row);
+      });
+    }
+    
+    function filterProductsByColumn() {
+      const tbodyEl = document.getElementById('productsTableBody');
+      const rows = tbodyEl.getElementsByTagName('tr');
+      
+      // Get filter values
+      const filters = {
+        productId: document.getElementById('filter-productId').value.toLowerCase(),
+        productName: document.getElementById('filter-productName').value.toLowerCase(),
+        category: document.getElementById('filter-category').value.toLowerCase(),
+        price: document.getElementById('filter-price').value.toLowerCase(),
+        special: document.getElementById('filter-special').value.toLowerCase(),
+        store: document.getElementById('filter-store').value.toLowerCase()
+      };
+      
+      // Filter each row
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        // Get cell values
+        const productId = cells[0] ? cells[0].textContent.toLowerCase() : '';
+        const productName = cells[1] ? cells[1].textContent.toLowerCase() : '';
+        const category = cells[2] ? cells[2].textContent.toLowerCase() : '';
+        const price = cells[3] ? cells[3].textContent.toLowerCase() : '';
+        const special = cells[4] ? cells[4].textContent.toLowerCase() : '';
+        const store = cells[5] ? cells[5].textContent.toLowerCase() : '';
+        
+        // Check if row matches all filters
+        const matchesProductId = !filters.productId || productId.includes(filters.productId);
+        const matchesProductName = !filters.productName || productName.includes(filters.productName);
+        const matchesCategory = !filters.category || category.includes(filters.category);
+        const matchesPrice = !filters.price || price.includes(filters.price);
+        const matchesSpecial = !filters.special || special.includes(filters.special);
+        const matchesStore = !filters.store || store.includes(filters.store);
+        
+        if (matchesProductId && matchesProductName && matchesCategory && matchesPrice && matchesSpecial && matchesStore) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      }
+    }
+    
+    // Product CRUD functions
+    let currentProductId = null;
+    let isEditProductMode = false;
+    
+    function showAddProductModal() {
+      const modal = document.getElementById('productModal');
+      const modalTitle = document.getElementById('productModalTitle');
+      const form = document.getElementById('productForm');
+      const errorDiv = document.getElementById('productModalError');
+      
+      modalTitle.textContent = 'Add New Product';
+      form.reset();
+      errorDiv.classList.remove('show');
+      currentProductId = null;
+      isEditProductMode = false;
+      
+      modal.classList.add('show');
+    }
+    
+    function closeProductModal() {
+      const modal = document.getElementById('productModal');
+      modal.classList.remove('show');
+      document.getElementById('productForm').reset();
+      document.getElementById('productModalError').classList.remove('show');
+      currentProductId = null;
+      isEditProductMode = false;
+    }
+    
+    async function editProduct(productId) {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`http://localhost:8000/api/v1/admin/products/${productId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch product data');
+        
+        const product = await response.json();
+        
+        const modal = document.getElementById('productModal');
+        const modalTitle = document.getElementById('productModalTitle');
+        const errorDiv = document.getElementById('productModalError');
+        
+        modalTitle.textContent = 'Edit Product';
+        document.getElementById('productName').value = product.productName || '';
+        document.getElementById('productCategory').value = product.categoryName || '';
+        document.getElementById('productDescription').value = product.description || '';
+        document.getElementById('productBasePrice').value = product.basePrice || '';
+        errorDiv.classList.remove('show');
+        
+        currentProductId = productId;
+        isEditProductMode = true;
+        modal.classList.add('show');
+        
+      } catch (error) {
+        console.error('Error loading product:', error);
+        alert('Failed to load product data');
+      }
+    }
+    
+    async function deleteProduct(productId, productName) {
+      if (!confirm(`Are you sure you want to delete product: ${productName}?`)) {
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`http://localhost:8000/api/v1/admin/products/${productId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to delete product');
+        }
+        
+        alert('Product deleted successfully');
+        loadProducts(); // Reload the table
+        
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        alert('Failed to delete product: ' + error.message);
+      }
+    }
+    
+    // Handle product form submission
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const errorDiv = document.getElementById('productModalError');
+      errorDiv.classList.remove('show');
+      
+      const productName = document.getElementById('productName').value;
+      const categoryName = document.getElementById('productCategory').value;
+      const description = document.getElementById('productDescription').value;
+      const basePrice = document.getElementById('productBasePrice').value;
+      
+      if (!productName) {
+        errorDiv.textContent = 'Product name is required';
+        errorDiv.classList.add('show');
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('access_token');
+        const productData = {
+          productName: productName,
+          categoryName: categoryName || null,
+          description: description || null,
+          basePrice: basePrice ? parseFloat(basePrice) : null
+        };
+        
+        let response;
+        if (isEditProductMode) {
+          // Update existing product
+          response = await fetch(`http://localhost:8000/api/v1/admin/products/${currentProductId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(productData)
+          });
+        } else {
+          // Create new product
+          response = await fetch('http://localhost:8000/api/v1/admin/products', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(productData)
+          });
+        }
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to save product');
+        }
+        
+        alert(isEditProductMode ? 'Product updated successfully' : 'Product created successfully');
+        closeProductModal();
+        loadProducts(); // Reload the table
+        
+      } catch (error) {
+        console.error('Error saving product:', error);
+        errorDiv.textContent = 'Failed to save product: ' + error.message;
+        errorDiv.classList.add('show');
+      }
+    });
+    
+    // Close product modal when clicking outside
+    window.addEventListener('click', function(event) {
+      const modal = document.getElementById('productModal');
+      if (event.target === modal) {
+        closeProductModal();
+      }
+    });
     
     // Fetch ETL jobs from API and display in table
     async function loadETLJobs() {
@@ -373,40 +1279,13 @@
         }
         
         // Show table
-        tableEl.style.display = 'table';
+        tableEl.classList.add('show');
         
-        // Populate table
-        tbodyEl.innerHTML = '';
-        data.forEach(job => {
-          const row = document.createElement('tr');
-          
-          // Format dates
-          const startTime = job.startTime ? new Date(job.startTime).toLocaleString() : 'N/A';
-          const endTime = job.endTime ? new Date(job.endTime).toLocaleString() : '-';
-          
-          // Status badge styling
-          let statusStyle = '';
-          if (job.overallStatus === 'completed') {
-            statusStyle = 'background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px;';
-          } else if (job.overallStatus === 'failed') {
-            statusStyle = 'background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px;';
-          } else if (job.overallStatus === 'running') {
-            statusStyle = 'background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px;';
-          }
-          
-          row.innerHTML = `
-            <td style="border: 1px solid #ddd; padding: 8px;">${job.jobNumber || job.jobId || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${job.jobType || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${job.sourceFile || job.sourceIdentifier || 'N/A'}">${job.sourceFile || job.sourceIdentifier || 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;"><span style="${statusStyle}">${job.overallStatus || 'N/A'}</span></td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${startTime}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${endTime}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemExtracted || job.totalItemProcessed || 0}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemLoaded || 0}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${job.totalItemFailed || 0}</td>
-          `;
-          tbodyEl.appendChild(row);
-        });
+        // Store data for sorting
+        etlJobsData = data;
+        
+        // Render table
+        renderETLTable();
         
         window.etlJobsLoaded = true;
         
@@ -414,9 +1293,475 @@
         console.error('Error loading ETL jobs:', error);
         loadingEl.style.display = 'none';
         errorEl.textContent = 'Failed to load ETL jobs data: ' + error.message;
-        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
       }
     }
+    
+    // Sort functionality for ETL jobs table
+    let etlSortColumn = null;
+    let etlSortDirection = 'asc';
+    let etlJobsData = [];
+    
+    function sortETLTable(column) {
+      if (etlSortColumn === column) {
+        etlSortDirection = etlSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        etlSortColumn = column;
+        etlSortDirection = 'asc';
+      }
+      
+      // Update sort indicators
+      document.querySelectorAll('[id^="sort-etl-"]').forEach(el => {
+        el.textContent = '⇅';
+      });
+      document.getElementById(`sort-etl-${column}`).textContent = etlSortDirection === 'asc' ? '↑' : '↓';
+      
+      // Sort the data
+      etlJobsData.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'jobId':
+            aVal = a.jobNumber || a.jobId || '';
+            bVal = b.jobNumber || b.jobId || '';
+            break;
+          case 'jobType':
+            aVal = a.jobType || '';
+            bVal = b.jobType || '';
+            break;
+          case 'sourceFile':
+            aVal = a.sourceFile || a.sourceIdentifier || '';
+            bVal = b.sourceFile || b.sourceIdentifier || '';
+            break;
+          case 'status':
+            aVal = a.overallStatus || '';
+            bVal = b.overallStatus || '';
+            break;
+          case 'startTime':
+            aVal = a.startTime ? new Date(a.startTime).getTime() : 0;
+            bVal = b.startTime ? new Date(b.startTime).getTime() : 0;
+            break;
+          case 'endTime':
+            aVal = a.endTime ? new Date(a.endTime).getTime() : 0;
+            bVal = b.endTime ? new Date(b.endTime).getTime() : 0;
+            break;
+          case 'processed':
+            aVal = parseInt(a.totalItemExtracted || a.totalItemProcessed || 0);
+            bVal = parseInt(b.totalItemExtracted || b.totalItemProcessed || 0);
+            break;
+          case 'loaded':
+            aVal = parseInt(a.totalItemLoaded || 0);
+            bVal = parseInt(b.totalItemLoaded || 0);
+            break;
+          case 'failed':
+            aVal = parseInt(a.totalItemFailed || 0);
+            bVal = parseInt(b.totalItemFailed || 0);
+            break;
+          default:
+            return 0;
+        }
+        
+        if (column === 'startTime' || column === 'endTime' || column === 'processed' || column === 'loaded' || column === 'failed') {
+          // Numeric comparison
+          if (aVal < bVal) return etlSortDirection === 'asc' ? -1 : 1;
+          if (aVal > bVal) return etlSortDirection === 'asc' ? 1 : -1;
+        } else {
+          // String comparison
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+          if (aVal < bVal) return etlSortDirection === 'asc' ? -1 : 1;
+          if (aVal > bVal) return etlSortDirection === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+      
+      renderETLTable();
+    }
+    
+    function renderETLTable() {
+      const tbodyEl = document.getElementById('etlJobsTableBody');
+      tbodyEl.innerHTML = '';
+      
+      etlJobsData.forEach(job => {
+        const row = document.createElement('tr');
+        
+        // Format dates
+        const startTime = job.startTime ? new Date(job.startTime).toLocaleString() : 'N/A';
+        const endTime = job.endTime ? new Date(job.endTime).toLocaleString() : '-';
+        
+        // Status badge class
+        let statusClass = 'etl-status-badge';
+        if (job.overallStatus === 'completed') {
+          statusClass += ' etl-status-completed';
+        } else if (job.overallStatus === 'failed') {
+          statusClass += ' etl-status-failed';
+        } else if (job.overallStatus === 'running') {
+          statusClass += ' etl-status-running';
+        }
+        
+        row.innerHTML = `
+          <td>${job.jobNumber || job.jobId || 'N/A'}</td>
+          <td>${job.jobType || 'N/A'}</td>
+          <td class="ellipsis" title="${job.sourceFile || job.sourceIdentifier || 'N/A'}">${job.sourceFile || job.sourceIdentifier || 'N/A'}</td>
+          <td><span class="${statusClass}">${job.overallStatus || 'N/A'}</span></td>
+          <td style="font-size: 12px;">${startTime}</td>
+          <td style="font-size: 12px;">${endTime}</td>
+          <td class="center">${job.totalItemExtracted || job.totalItemProcessed || 0}</td>
+          <td class="center">${job.totalItemLoaded || 0}</td>
+          <td class="center">${job.totalItemFailed || 0}</td>
+        `;
+        tbodyEl.appendChild(row);
+      });
+    }
+    
+    // Login Logs functions
+    let loginLogsSortColumn = null;
+    let loginLogsSortDirection = 'asc';
+    let loginLogsData = [];
+    
+    async function loadLoginLogs() {
+      const loadingEl = document.getElementById('loginLogsLoading');
+      const errorEl = document.getElementById('loginLogsError');
+      const tableEl = document.getElementById('loginLogsTable');
+      const tbodyEl = document.getElementById('loginLogsTableBody');
+      
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('http://localhost:8000/api/v1/admin/login-logs', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        loginLogsData = await response.json();
+        
+        loadingEl.style.display = 'none';
+        tableEl.classList.add('show');
+        
+        renderLoginLogsTable();
+        window.loginLogsLoaded = true;
+        
+      } catch (error) {
+        console.error('Error loading login logs:', error);
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'Failed to load login logs data: ' + error.message;
+        errorEl.classList.add('show');
+      }
+    }
+    
+    function sortLoginLogsTable(column) {
+      if (loginLogsSortColumn === column) {
+        loginLogsSortDirection = loginLogsSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        loginLogsSortColumn = column;
+        loginLogsSortDirection = 'asc';
+      }
+      
+      // Update sort indicators
+      document.querySelectorAll('[id^="sort-log-"]').forEach(el => {
+        el.textContent = '⇅';
+      });
+      document.getElementById(`sort-log-${column}`).textContent = loginLogsSortDirection === 'asc' ? '↑' : '↓';
+      
+      // Sort the data
+      loginLogsData.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'logId':
+            aVal = a.logId || a.log_id || '';
+            bVal = b.logId || b.log_id || '';
+            break;
+          case 'userId':
+            aVal = a.userId || a.user_id || '';
+            bVal = b.userId || b.user_id || '';
+            break;
+          case 'email':
+            aVal = a.email || '';
+            bVal = b.email || '';
+            break;
+          case 'loginTime':
+            aVal = a.loginTime || a.login_time ? new Date(a.loginTime || a.login_time).getTime() : 0;
+            bVal = b.loginTime || b.login_time ? new Date(b.loginTime || b.login_time).getTime() : 0;
+            break;
+          case 'ipAddress':
+            aVal = a.ipAddress || a.ip_address || '';
+            bVal = b.ipAddress || b.ip_address || '';
+            break;
+          case 'userAgent':
+            aVal = a.userAgent || a.user_agent || '';
+            bVal = b.userAgent || b.user_agent || '';
+            break;
+          default:
+            return 0;
+        }
+        
+        if (column === 'loginTime') {
+          // Numeric comparison for timestamps
+          if (aVal < bVal) return loginLogsSortDirection === 'asc' ? -1 : 1;
+          if (aVal > bVal) return loginLogsSortDirection === 'asc' ? 1 : -1;
+        } else {
+          // String comparison
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+          if (aVal < bVal) return loginLogsSortDirection === 'asc' ? -1 : 1;
+          if (aVal > bVal) return loginLogsSortDirection === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+      
+      renderLoginLogsTable();
+    }
+    
+    function renderLoginLogsTable() {
+      const tbodyEl = document.getElementById('loginLogsTableBody');
+      tbodyEl.innerHTML = '';
+      
+      loginLogsData.forEach(log => {
+        const row = document.createElement('tr');
+        const loginTime = log.loginTime || log.login_time ? new Date(log.loginTime || log.login_time).toLocaleString() : 'N/A';
+        
+        row.innerHTML = `
+          <td>${log.logId || log.log_id || 'N/A'}</td>
+          <td>${log.userId || log.user_id || 'N/A'}</td>
+          <td>${log.email || 'N/A'}</td>
+          <td style="font-size: 12px;">${loginTime}</td>
+          <td>${log.ipAddress || log.ip_address || 'N/A'}</td>
+          <td class="ellipsis-long" title="${log.userAgent || log.user_agent || 'N/A'}">${log.userAgent || log.user_agent || 'N/A'}</td>
+        `;
+        tbodyEl.appendChild(row);
+      });
+    }
+    
+    function filterLoginLogsByColumn() {
+      const tbodyEl = document.getElementById('loginLogsTableBody');
+      const rows = tbodyEl.getElementsByTagName('tr');
+      
+      // Get filter values
+      const filters = {
+        logId: document.getElementById('filter-log-logId').value.toLowerCase(),
+        userId: document.getElementById('filter-log-userId').value.toLowerCase(),
+        email: document.getElementById('filter-log-email').value.toLowerCase(),
+        loginTime: document.getElementById('filter-log-loginTime').value.toLowerCase(),
+        ipAddress: document.getElementById('filter-log-ipAddress').value.toLowerCase(),
+        userAgent: document.getElementById('filter-log-userAgent').value.toLowerCase()
+      };
+      
+      // Filter each row
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const cells = row.getElementsByTagName('td');
+        
+        // Get cell values
+        const logId = cells[0] ? cells[0].textContent.toLowerCase() : '';
+        const userId = cells[1] ? cells[1].textContent.toLowerCase() : '';
+        const email = cells[2] ? cells[2].textContent.toLowerCase() : '';
+        const loginTime = cells[3] ? cells[3].textContent.toLowerCase() : '';
+        const ipAddress = cells[4] ? cells[4].textContent.toLowerCase() : '';
+        const userAgent = cells[5] ? cells[5].textContent.toLowerCase() : '';
+        
+        // Check if row matches all filters
+        const matchesLogId = !filters.logId || logId.includes(filters.logId);
+        const matchesUserId = !filters.userId || userId.includes(filters.userId);
+        const matchesEmail = !filters.email || email.includes(filters.email);
+        const matchesLoginTime = !filters.loginTime || loginTime.includes(filters.loginTime);
+        const matchesIpAddress = !filters.ipAddress || ipAddress.includes(filters.ipAddress);
+        const matchesUserAgent = !filters.userAgent || userAgent.includes(filters.userAgent);
+        
+        if (matchesLogId && matchesUserId && matchesEmail && matchesLoginTime && matchesIpAddress && matchesUserAgent) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      }
+    }
+    
+    // User CRUD functions
+    let currentUserId = null;
+    let isEditMode = false;
+    
+    function showAddUserModal() {
+      const modal = document.getElementById('userModal');
+      const modalTitle = document.getElementById('userModalTitle');
+      const form = document.getElementById('userForm');
+      const errorDiv = document.getElementById('userModalError');
+      
+      modalTitle.textContent = 'Add New User';
+      form.reset();
+      errorDiv.classList.remove('show');
+      currentUserId = null;
+      isEditMode = false;
+      
+      modal.classList.add('show');
+    }
+    
+    function closeUserModal() {
+      const modal = document.getElementById('userModal');
+      modal.classList.remove('show');
+      document.getElementById('userForm').reset();
+      document.getElementById('userModalError').classList.remove('show');
+      currentUserId = null;
+      isEditMode = false;
+    }
+    
+    async function editUser(userId) {
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch user data');
+        
+        const user = await response.json();
+        
+        const modal = document.getElementById('userModal');
+        const modalTitle = document.getElementById('userModalTitle');
+        const form = document.getElementById('userForm');
+        const errorDiv = document.getElementById('userModalError');
+        
+        modalTitle.textContent = 'Edit User';
+        document.getElementById('userEmail').value = user.email;
+        document.getElementById('userFirstName').value = user.firstName || '';
+        document.getElementById('userLastName').value = user.lastName || '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userPassword').placeholder = 'Leave empty to keep current password';
+        errorDiv.classList.remove('show');
+        
+        currentUserId = userId;
+        isEditMode = true;
+        modal.classList.add('show');
+        
+      } catch (error) {
+        console.error('Error loading user:', error);
+        alert('Failed to load user data');
+      }
+    }
+    
+    async function deleteUser(userId, email) {
+      if (!confirm(`Are you sure you want to delete user: ${email}?`)) {
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to delete user');
+        }
+        
+        alert('User deleted successfully');
+        loadUsers(); // Reload the table
+        
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user: ' + error.message);
+      }
+    }
+    
+    // Handle form submission
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const errorDiv = document.getElementById('userModalError');
+      errorDiv.classList.remove('show');
+      
+      const email = document.getElementById('userEmail').value;
+      const firstName = document.getElementById('userFirstName').value;
+      const lastName = document.getElementById('userLastName').value;
+      const password = document.getElementById('userPassword').value;
+      
+      // Validation
+      if (!email || !email.includes('@')) {
+        errorDiv.textContent = 'Please enter a valid email';
+        errorDiv.classList.add('show');
+        return;
+      }
+      
+      if (!isEditMode && !password) {
+        errorDiv.textContent = 'Password is required for new users';
+        errorDiv.classList.add('show');
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('access_token');
+        const userData = {
+          email: email,
+          firstName: firstName || null,
+          lastName: lastName || null
+        };
+        
+        if (password) {
+          userData.password = password;
+        }
+        
+        let response;
+        if (isEditMode) {
+          // Update existing user
+          response = await fetch(`http://localhost:8000/api/v1/admin/users/${currentUserId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(userData)
+          });
+        } else {
+          // Create new user
+          response = await fetch('http://localhost:8000/api/v1/admin/users', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(userData)
+          });
+        }
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to save user');
+        }
+        
+        alert(isEditMode ? 'User updated successfully' : 'User created successfully');
+        closeUserModal();
+        loadUsers(); // Reload the table
+        
+      } catch (error) {
+        console.error('Error saving user:', error);
+        errorDiv.textContent = 'Failed to save user: ' + error.message;
+        errorDiv.classList.add('show');
+      }
+    });
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('userModal');
+      if (event.target === modal) {
+        closeUserModal();
+      }
+    };
     
     // Load users when page loads
     document.addEventListener('DOMContentLoaded', loadUsers);
