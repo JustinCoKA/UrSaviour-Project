@@ -1,12 +1,12 @@
-# backend/app/api/v1/endpoints/assistant.py
-# AI Assistant using backend database data for price comparison across 4 stores
 import os
 import logging
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, MetaData, Table, or_
 from openai import OpenAI
+from datetime import datetime
+from sqlalchemy import insert
 
 from app.core.config import settings
 from app.db.session import ProductsSessionLocal, products_engine
@@ -14,27 +14,42 @@ from app.db.session import ProductsSessionLocal, products_engine
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# === CONFIGURABLE SYSTEM PROMPT ===
-# Modify this prompt to change AI assistant behavior
-SYSTEM_PROMPT = """You are a helpful price comparison assistant for UrSaviour grocery platform.
+#Openai setting to access the key in the .env outside the backend
+#openapi_key = os.getenv("OPENAI_API_KEY")  
+try:
+    openai_key = getattr(settings, 'OPENAI_API_KEY', None)
+    if openai_key:
+        openai_key = openai_key.get_secret_value()
+    else:
+        openai_key = os.getenv("OPENAI_API_KEY")
+    
+    client = OpenAI(api_key=openai_key) if openai_key else None
+except Exception as e:
+    logger.error(f"Failed to initialize OpenAI client: {e}")
+    client = None
 
-Your PRIMARY goal: Help users find the cheapest prices across our 4 stores (Justin Groceries, Mio Mart, Austin Fresh, Aadarsh Deals).
+#promt to set the ai function, behaviourr
+the_aipromt = """You are a helpful price comparison assistant for UrSaviour grocery platform.
 
-IMPORTANT RULES:
-1. ONLY use the product data provided in the context - NEVER make up prices or products
-2. When comparing prices, show ALL 4 stores with their prices
-3. Clearly highlight which store has the CHEAPEST price
-4. If a product isn't in the data, say "I don't have price information for that product"
-5. Keep responses concise (under 200 words)
-6. Format price comparisons as a clear list
-7. If user asks for recipes or meal ideas, suggest meals based on products available in the provided data ONLY.
-8. If the user askes for nutritional information, only provide details if they are included in the provided data. Do not fabricate any nutritional facts.
-9. If user askes for help with techinical issues regarding the login or signup issues, direct them to contact support at admin@admin.com and appologize for the inconvenience.
-10. If the user asks for the ingredients for recipe, Please list all the ingredients with the cheapest prices for each ingredient, NO need to compare prices in this case. 
-11. IF the product is not found in any of the 4 stores, respond with "We could not find that product in any of our stores. Do you want to finnd anything else?"
-12. If possile, suggest the user with a different product to hook the user to use the chat.
+Your job: Help users find cheapest prices across our 4 stores (Justin Groceries, Mio Mart, Austin Fresh, Aadarsh Deals).
 
-Example response format:    
+RULES:
+ONLY use the product data provided in the context - NEVER make up prices or products
+When comparing prices, show ALL 4 stores with their prices
+Clearly highlight which store has the CHEAPEST price
+If a product isn't in the data, say "I don't have price information for that product"
+Keep responses concise (under 200 words)
+Format price comparisons as a clear list
+If user asks for recipes or meal ideas, suggest meals based on products available in the provided data ONLY.
+If the user asks for nutritional information, only provide details if they are included in the provided data. Do not fabricate any nutritional facts.
+For issue relating to technical issue like login or sign, provide email support at admin@admin.com and apologize for the inconvenience.
+If the user asks for the ingredients for a recipe, please list all the ingredients with the cheapest prices for each ingredient, NO need to compare prices in this case. 
+If the product is not found in any of the 4 stores, respond with "We could not find that product in any of our stores. Do you want to find anything else?"
+If possible, suggest the user a different product to hook the user to use the chat.
+If the cheapest price and 2 stores offer the same cheapest price, highlight both stores as CHEAPEST.
+If user asks a product that have a same name, then list and ask which one they mean.
+
+Example format for response:    
 "Here are the milk prices across our stores:
 - Justin Groceries: $3.50
 - Mio Mart: $3.45 ✓ CHEAPEST
@@ -44,48 +59,19 @@ Example response format:
 The best deal is at Mio Mart for $3.45!"
 """
 
-# === OpenAI Setup ===
-try:
-    # Try to get from settings first (reads from root .env via config.py)
-    openai_key = None
-    if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY:
-        # OPENAI_API_KEY is a SecretStr, need to extract the actual value
-        openai_key = settings.OPENAI_API_KEY.get_secret_value()
-    
-    # Fallback to direct environment variable
-    if not openai_key:
-        openai_key = os.getenv("OPENAI_API_KEY")
-    
-    client = OpenAI(api_key=openai_key) if openai_key else None
-    
-    if not client:
-        logger.warning("⚠️ OpenAI API key not configured - check .env file")
-    else:
-        logger.info("✅ OpenAI client initialized successfully")
-except Exception as e:
-    logger.error(f"Failed to initialize OpenAI client: {e}")
-    client = None
 
-# === Database Tables ===
 metadata = MetaData()
-_tables_initialized = False
-Products = Stores = StoreOfferings = StoreBasePrices = None
-
+Products = Stores = StoreOfferings = StoreBasePrices = ConversationHistory = None
+#Take the tables from the mysql wokbench 
 def _ensure_tables():
-    """Lazy load database tables"""
-    global _tables_initialized, Products, Stores, StoreOfferings, StoreBasePrices
-    if not _tables_initialized:
-        try:
-            Products = Table("products", metadata, autoload_with=products_engine)
-            Stores = Table("stores", metadata, autoload_with=products_engine)
-            StoreOfferings = Table("storeOfferings", metadata, autoload_with=products_engine)
-            StoreBasePrices = Table("store_base_prices", metadata, autoload_with=products_engine)
-            _tables_initialized = True
-            logger.info("✅ Database tables loaded successfully")
-        except Exception as e:
-            logger.error(f"Failed to load database tables: {e}")
+    global Products, Stores, StoreOfferings, StoreBasePrices, ConversationHistory
+    if Products is None:
+        Products = Table("products", metadata, autoload_with=products_engine)
+        Stores = Table("stores", metadata, autoload_with=products_engine)
+        StoreOfferings = Table("storeOfferings", metadata, autoload_with=products_engine)
+        StoreBasePrices = Table("store_base_prices", metadata, autoload_with=products_engine)  
+        ConversationHistory = Table("save_conversation_history", metadata, autoload_with=products_engine)
 
-# === Request/Response Models ===
 class ChatRequest(BaseModel):
     message: str
     userId: Optional[str] = None
@@ -95,161 +81,137 @@ class ChatResponse(BaseModel):
     answer: str
     conversationId: Optional[str] = None
 
-# === Core Functions ===
 def get_product_context_from_db(search_query: str) -> str:
-    """
-    Query backend database for product price information across all stores.
-    Returns formatted text with actual product data for AI context.
-    """
-    try:
-        _ensure_tables()
-        with ProductsSessionLocal() as db:
-            # Extract key search terms (split on spaces, take meaningful words)
-            search_terms = [term.strip().lower() for term in search_query.split() if len(term.strip()) > 2]
+    _ensure_tables()
+    with ProductsSessionLocal() as db:
+        conds = []  # search conditions
+        for term in search_query.split():
+            if len(term.strip()) > 2:  
+                term = term.strip().lower()
+                conds.append(Products.c.productName.ilike(f"%{term}%"))
+                conds.append(Products.c.categoryName.ilike(f"%{term}%"))
+        
+       
+        q = select(
+            Products.c.productId,
+            Products.c.productName,
+            Products.c.categoryName,
+            Products.c.basePrice
+        )
+        if conds:
+            q = q.where(or_(*conds))
+        
+        products = db.execute(q.limit(20)).fetchall()
+        parts = []
+        #debug only 
+        for product in products:
+            info = [
+                f"\n=== {product.productName} ===",
+                f"Category: {product.categoryName}",
+                f"Product ID: {product.productId}",
+                "\nPrices by Store:"
+            ]
             
-            # If no good search terms, get all products (limit 20)
-            if not search_terms:
-                products_query = select(
-                    Products.c.productId,
-                    Products.c.productName,
-                    Products.c.categoryName,
-                    Products.c.basePrice
-                ).limit(20)
-            else:
-                # Search for products matching ANY of the terms in name or category
-                search_conditions = []
-                for term in search_terms:
-                    search_conditions.append(Products.c.productName.ilike(f"%{term}%"))
-                    search_conditions.append(Products.c.categoryName.ilike(f"%{term}%"))
-                
-                products_query = select(
-                    Products.c.productId,
-                    Products.c.productName,
-                    Products.c.categoryName,
-                    Products.c.basePrice
-                ).where(or_(*search_conditions)).limit(20)
+            bp_query = select(
+                StoreBasePrices.c.storeId,
+                StoreBasePrices.c.basePrice
+            ).where(StoreBasePrices.c.productId == product.productId)
             
-            products = db.execute(products_query).fetchall()
+            base_prices = db.execute(bp_query).fetchall()
+            # grabbing all stores 
+            stores = db.execute(select(Stores.c.storeId, Stores.c.storeName)).fetchall()
+            store_map = {s.storeId: s.storeName for s in stores}
             
-            if not products:
-                # If still no results, get top 10 products from database
-                products_query = select(
-                    Products.c.productId,
-                    Products.c.productName,
-                    Products.c.categoryName,
-                    Products.c.basePrice
-                ).limit(10)
-                products = db.execute(products_query).fetchall()
-                
-                if not products:
-                    return "Database appears to be empty. No products available."
+            offers_q = select(
+                StoreOfferings.c.storeId,
+                StoreOfferings.c.price,
+                StoreOfferings.c.basePrice,
+                StoreOfferings.c.offerDetails
+            ).where(StoreOfferings.c.productId == product.productId)
             
-            # Build context with store prices for each product
-            context_parts = []
+            offers = db.execute(offers_q).fetchall()
+            offer_map = {o.storeId: o for o in offers}
             
-            for product in products:
-                product_info = [
-                    f"\n=== {product.productName} ===",
-                    f"Category: {product.categoryName}",
-                    f"Product ID: {product.productId}",
-                    "\nPrices by Store:"
-                ]
-                
-                # Get store-specific base prices
-                base_prices_query = select(
-                    StoreBasePrices.c.storeId,
-                    StoreBasePrices.c.basePrice
-                ).where(StoreBasePrices.c.productId == product.productId)
-                
-                base_prices = db.execute(base_prices_query).fetchall()
-                
-                # Get store names
-                stores_query = select(Stores.c.storeId, Stores.c.storeName)
-                stores = db.execute(stores_query).fetchall()
-                stores_dict = {s.storeId: s.storeName for s in stores}
-                
-                # Get special offerings (discounts)
-                offerings_query = select(
-                    StoreOfferings.c.storeId,
-                    StoreOfferings.c.price,
-                    StoreOfferings.c.basePrice,
-                    StoreOfferings.c.offerDetails
-                ).where(StoreOfferings.c.productId == product.productId)
-                
-                offerings = db.execute(offerings_query).fetchall()
-                offerings_dict = {o.storeId: o for o in offerings}
-                
-                # Compile prices for all stores
-                for store_id, store_name in stores_dict.items():
-                    # Check if there's a special offer
-                    if store_id in offerings_dict:
-                        offer = offerings_dict[store_id]
-                        price = offer.price if offer.price else offer.basePrice
-                        offer_text = f" ({offer.offerDetails})" if offer.offerDetails else ""
-                        product_info.append(f"  • {store_name}: ${price:.2f}{offer_text}")
-                    else:
-                        # Use base price
-                        base_price = next((bp.basePrice for bp in base_prices if bp.storeId == store_id), product.basePrice)
-                        if base_price:
-                            product_info.append(f"  • {store_name}: ${float(base_price):.2f}")
-                
-                context_parts.append("\n".join(product_info))
+            for sid, sname in store_map.items():
+                if sid in offer_map:
+                    off = offer_map[sid]
+                    price = off.price if off.price else off.basePrice
+                    offer_text = f" ({off.offerDetails})" if off.offerDetails else ""
+                    info.append(f"  • {sname}: ${price:.2f}{offer_text}")
+                else:
+                    bp = next((b.basePrice for b in base_prices if b.storeId == sid), product.basePrice)
+                    if bp:
+                        info.append(f"  • {sname}: ${float(bp):.2f}")
             
-            result = "\n".join(context_parts)
-            logger.info(f"Found {len(products)} products for query: {search_query}")
-            return result
-            
-    except Exception as e:
-        logger.error(f"Database query failed: {e}")
-        return f"Error retrieving product data: {str(e)}"
+            parts.append("\n".join(info))
+        
+        result = "\n".join(parts)
+        return result
+#save function for chat conversation
+def save_conversation_message(conversation_id: str, user_id: Optional[str], role: str, message: str):
+    _ensure_tables()
+    with ProductsSessionLocal() as db:
+        
+        stmt = insert(ConversationHistory).values(
+            conversationId=conversation_id,
+            userId=user_id,
+            role=role,
+            message=message,
+            timestamp=datetime.now()
+        )
+        db.execute(stmt)
+        db.commit()
+
 
 @router.get("/health")
 def health():
-    """Health check endpoint"""
     return {"status": "ok", "service": "ai_assistant"}
 
 @router.get("/test")
 def test():
-    """Test endpoint to verify assistant is working"""
+    # for test to see if it is loaded or not
     return {
         "status": "ok",
         "openai_configured": client is not None,
         "database_available": _tables_initialized or products_engine is not None,
-        "system_prompt_preview": SYSTEM_PROMPT[:100] + "..."
+        "system_prompt_preview": the_aipromt [:100] + "..."
     }
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """
-    Main chat endpoint - compares product prices using ONLY backend database data
-    """
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Empty message")
     
     if not client:
-        raise HTTPException(status_code=500, detail="OpenAI not configured. Please set OPENAI_API_KEY in .env")
+        raise HTTPException(status_code=500, detail="OpenAI not configured")
     
     try:
-        # Get real product data from backend database
+        if not request.conversationId:
+            import uuid
+            request.conversationId = str(uuid.uuid4())
+        # debugging
         product_context = get_product_context_from_db(request.message)
         
-        # Prepare messages for OpenAI
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Context (REAL DATA FROM DATABASE):\n{product_context}\n\nUser Question: {request.message}"}
-        ]
+        messages = [{"role": "system", "content": the_aipromt}]
+        messages.append({"role": "user", "content": f"Context (REAL DATA FROM DATABASE):\n{product_context}\n\nUser Question: {request.message}"})
         
-        # Get AI response using real data
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             max_tokens=400,
-            temperature=0.3  # Lower temperature = more factual, less creative
+            temperature=0.3  
         )
         
         answer = response.choices[0].message.content
         
-        logger.info(f"Chat processed - User: {request.userId}, Query: {request.message[:50]}...")
+        # save both messages
+        save_conversation_message(request.conversationId, request.userId, "user", request.message)
+        save_conversation_message(request.conversationId, request.userId, "assistant", answer)
+        
+        user_type = "logged-in user" if request.userId else "guest"
+        logger.info(f"Chat saved for {user_type}: {request.userId or 'no userId'}")
+        
+        logger.info(f"Chat processed - User: {request.userId or 'guest'}, Query: {request.message[:50]}...")
         
         return ChatResponse(
             answer=answer,
@@ -260,7 +222,4 @@ async def chat(request: ChatRequest):
         logger.error(f"Chat processing error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process request: {str(e)}")
 
-# Initialize tables on module load
 _ensure_tables()
-
-
