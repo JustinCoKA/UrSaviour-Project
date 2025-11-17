@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: Optional[SecretStr] = None
     AWS_SECRET_ACCESS_KEY: Optional[SecretStr] = None
 
+    # --- OpenAI ---
+    OPENAI_API_KEY: Optional[SecretStr] = None
+
     # --- Email ---
     SMTP_HOST: str = "mailhog"  # dev default
     SMTP_PORT: int = 1025

@@ -36,12 +36,16 @@ docker-compose up -d
 cd backend
 pip install -r requirements.txt
 python main.py  # localhost:8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-# Run frontend (new terminal)
+# Run frontend (new terminal windows)
 cd frontend/src
 python -m http.server 3001  # localhost:3001
 ```
-
+#Go to the page following the url pattern 
+```bash
+http://127.0.0.1:3001/Chat-page.html
+```
 ### AWS/EC2 Production Deployment
 ```bash
 # Configure production environment variables

@@ -18,7 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const isLocal = ["localhost", "127.0.0.1", ""].includes(window.location.hostname) || window.location.protocol === "file:";
-  const API_BASE = isLocal ? "http://127.0.0.1:8000" : ""; // same-origin in prod
+  const API_BASE = isLocal ? "http://127.0.0.1:8000" : ""; // Backend port
+  const CHAT_ENDPOINT = `${API_BASE}/api/v1/assistant/chat`;
 
   const chatBox = document.createElement("div");
   chatBox.className = "chat-box";
@@ -94,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try{
       const userId = resolveUserId();
-      const response = await fetch(`${API_BASE}/chat`, {
+      const response = await fetch(CHAT_ENDPOINT, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ message: userInput, userId, conversationId })
@@ -110,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("[Chat] error:", err);
       removeTyping();
       clearBusy();
-      appendMessage("bot", "⚠️ Connection error. Please check your backend.");
+      appendMessage("bot", " Connection error. Please check your backend.");
     }
   }
 
