@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("[Chat] error:", err);
       removeTyping();
       clearBusy();
-      appendMessage("bot", "⚠️ Connection error. Please check your backend.");
+      appendMessage("bot", " Connection error. Please check your backend.");
     }
   }
 

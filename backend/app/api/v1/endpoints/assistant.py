@@ -14,10 +14,10 @@ from app.db.session import ProductsSessionLocal, products_engine
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-#Openai setting to access the key in the .env outside the backend
+#Note: Openai setting to access the key in the .env outside the backend
 #openapi_key = os.getenv("OPENAI_API_KEY")  
 try:
-    openai_key = getattr(settings, 'OPENAI_API_KEY', None)
+    mopenai_key = getattr(settings, 'OPENAI_API_KEY', None)
     if openai_key:
         openai_key = openai_key.get_secret_value()
     else:
@@ -28,7 +28,7 @@ except Exception as e:
     logger.error(f"Failed to initialize OpenAI client: {e}")
     client = None
 
-#promt to set the ai function, behaviourr
+#Purpose: promt to set the ai function, behaviourr
 the_aipromt = """You are a helpful price comparison assistant for UrSaviour grocery platform.
 
 Your job: Help users find cheapest prices across our 4 stores (Justin Groceries, Mio Mart, Austin Fresh, Aadarsh Deals).
@@ -56,7 +56,7 @@ Example format for response:
 - Austin Fresh: $3.60
 - Aadarsh Deals: $3.55
 
-The best deal is at Mio Mart for $3.45!"
+.The best deal is at Mio Mart for $3.45!"
 """
 
 
