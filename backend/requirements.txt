@@ -19,3 +19,4 @@ apscheduler==3.10.4
 watchdog==5.0.2
 reportlab==4.2.5
 pdfplumber==0.11.4
+# note: run pip install -r requirements.txt from the backend/ directory

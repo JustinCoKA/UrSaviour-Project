@@ -22,6 +22,11 @@ import pymysql
 import io
 import csv
 import re
+import time
+from zoneinfo import ZoneInfo
+
+# Use Australia/Sydney timezone for ETL timestamps
+SYDNEY_TZ = ZoneInfo("Australia/Sydney")
 
 # PDF processing library (requires Lambda Layer)
 try:
@@ -69,7 +74,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             bucket = event['bucket_name']
             key = event['object_key']
             file_type = 'csv' if key.lower().endswith('.csv') else 'pdf'
-            trigger_time = datetime.now().isoformat()
+            trigger_time = datetime.now(SYDNEY_TZ).isoformat()
         else:
             # Existing format
             bucket = event['bucket']
@@ -130,7 +135,7 @@ def test_database_connection(event: Dict[str, Any]) -> Dict[str, Any]:
         
         result = {
             'database_test': 'SUCCESS',
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(SYDNEY_TZ).isoformat(),
             'tables': {}
         }
         
@@ -182,7 +187,7 @@ def test_database_connection(event: Dict[str, Any]) -> Dict[str, Any]:
             file_type = 'csv' if key.lower().endswith('.csv') else 'pdf'
             
             # Execute ETL pipeline
-            etl_result = execute_etl_pipeline(bucket, key, file_type, datetime.now().isoformat())
+            etl_result = execute_etl_pipeline(bucket, key, file_type, datetime.now(SYDNEY_TZ).isoformat())
             result['etl_test'] = etl_result
         
         return {
@@ -197,7 +202,7 @@ def test_database_connection(event: Dict[str, Any]) -> Dict[str, Any]:
             'body': {
                 'database_test': 'FAILED',
                 'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(SYDNEY_TZ).isoformat()
             }
         }
 
@@ -205,10 +210,25 @@ def execute_etl_pipeline(bucket: str, key: str, file_type: str, trigger_time: st
     """
     Execute ETL pipeline
     """
-    start_time = datetime.utcnow()
+    # Use Sydney time for timestamps
+    start_time = datetime.now(SYDNEY_TZ)
     job_id = None
     
     try:
+        # Idempotency: skip if we've already successfully processed this source
+        if has_successful_job(key):
+            logger.info(f"Skipping ETL for {key} because a successful job already exists")
+            return {
+                'records_extracted': 0,
+                'records_transformed': 0,
+                'records_loaded': 0,
+                'processing_time_seconds': 0,
+                'start_time': start_time.isoformat(),
+                'end_time': datetime.now(SYDNEY_TZ).isoformat(),
+                'skipped': True,
+                'reason': 'already_processed'
+            }
+
         # Log ETL job start
         job_id = log_etl_job_start(key, file_type, start_time)
         log_etl_message(job_id, "INFO", f"ETL pipeline started for file: {key}")
@@ -242,8 +262,8 @@ def execute_etl_pipeline(bucket: str, key: str, file_type: str, trigger_time: st
         log_etl_message(job_id, "INFO", "Step 3: Loading data to database")
         
         db_result = load_data_to_database(transformed_data)
-        
-        end_time = datetime.utcnow()
+
+        end_time = datetime.now(SYDNEY_TZ)
         processing_time = (end_time - start_time).total_seconds()
         
         result = {
@@ -265,7 +285,7 @@ def execute_etl_pipeline(bucket: str, key: str, file_type: str, trigger_time: st
         
     except Exception as e:
         # Log ETL job failure
-        end_time = datetime.utcnow()
+        end_time = datetime.now(SYDNEY_TZ)
         if job_id:
             log_etl_job_complete(job_id, end_time, "failed", 0, 0)
             log_etl_message(job_id, "ERROR", f"ETL pipeline failed: {str(e)}")
@@ -458,6 +478,8 @@ def map_csv_fields(csv_row: Dict[str, str]) -> Dict[str, Any]:
         'storeName': 'storeName',
         'product_name': 'productName',
         'productName': 'productName',
+        'category_name': 'categoryName',
+        'categoryName': 'categoryName',
         'final_price': 'price',
         'price': 'price',
         'base_price': 'basePrice',
@@ -540,9 +562,22 @@ def load_data_to_database(data: List[Dict[str, Any]]) -> Dict[str, Any]:
         # 1. Get existing data mapping
         cursor.execute("SELECT productId, productName FROM products")
         product_map = {p['productName']: p['productId'] for p in cursor.fetchall()}
-        
+
         cursor.execute("SELECT storeId, storeName FROM stores")
         store_map = {s['storeName']: s['storeId'] for s in cursor.fetchall()}
+
+        # 1.a Ensure product categories exist and load mapping
+        cursor.execute("SELECT categoryId, categoryName FROM productCategories")
+        category_map = {c['categoryName']: c['categoryId'] for c in cursor.fetchall()}
+
+        # Ensure a fallback category exists to avoid foreign-key failures
+        DEFAULT_CATEGORY_NAME = 'Uncategorized'
+        default_category_id = category_map.get(DEFAULT_CATEGORY_NAME)
+        if not default_category_id:
+            cursor.execute("INSERT INTO productCategories (categoryName) VALUES (%s)", (DEFAULT_CATEGORY_NAME,))
+            default_category_id = cursor.lastrowid
+            category_map[DEFAULT_CATEGORY_NAME] = default_category_id
+            logger.info(f"Created default product category '{DEFAULT_CATEGORY_NAME}' with id {default_category_id}")
         
         # 2. Add new products/stores
         new_products = 0
@@ -550,10 +585,34 @@ def load_data_to_database(data: List[Dict[str, Any]]) -> Dict[str, Any]:
         
         for item in data:
             if item['productName'] not in product_map:
-                cursor.execute("INSERT INTO products (productName) VALUES (%s)", (item['productName'],))
+                # Determine category id to use: use provided categoryName if present, else default
+                provided_cat = item.get('categoryName')
+                use_category_id = default_category_id
+
+                if provided_cat:
+                    # Ensure provided category exists (create if missing)
+                    provided_cat = provided_cat.strip()
+                    cat_id = category_map.get(provided_cat)
+                    if not cat_id:
+                        cursor.execute("INSERT INTO productCategories (categoryName) VALUES (%s)", (provided_cat,))
+                        cat_id = cursor.lastrowid
+                        category_map[provided_cat] = cat_id
+                        logger.info(f"Created product category '{provided_cat}' with id {cat_id}")
+                    use_category_id = cat_id
+
+                # Insert product with category id (fallback to default if insertion with category fails)
+                try:
+                    cursor.execute(
+                        "INSERT INTO products (productName, categoryId) VALUES (%s, %s)",
+                        (item['productName'], use_category_id)
+                    )
+                except Exception:
+                    # Fallback: try inserting without category if schema allows
+                    cursor.execute("INSERT INTO products (productName) VALUES (%s)", (item['productName'],))
+
                 product_map[item['productName']] = cursor.lastrowid
                 new_products += 1
-                logger.info(f"New product added: {item['productName']}")
+                logger.info(f"New product added: {item['productName']} (category_id={use_category_id})")
             
             if item['storeName'] not in store_map:
                 cursor.execute("INSERT INTO stores (storeName) VALUES (%s)", (item['storeName'],))
@@ -561,17 +620,12 @@ def load_data_to_database(data: List[Dict[str, Any]]) -> Dict[str, Any]:
                 new_stores += 1
                 logger.info(f"New store added: {item['storeName']}")
         
-        # 3. Delete existing storeOfferings
-        cursor.execute("DELETE FROM storeOfferings")
-        deleted_count = cursor.rowcount
-        logger.info(f"Deleted {deleted_count} existing store offerings")
-        
-        # 4. Insert new discount data
+        # 3. Prepare new storeOfferings in a swap table then atomically swap
         offerings_to_insert = []
         for item in data:
             product_id = product_map.get(item['productName'])
             store_id = store_map.get(item['storeName'])
-            
+
             if product_id and store_id:
                 offerings_to_insert.append((
                     product_id,
@@ -580,16 +634,49 @@ def load_data_to_database(data: List[Dict[str, Any]]) -> Dict[str, Any]:
                     item['basePrice'],
                     item.get('offerDetails', '')
                 ))
-        
-        sql = """
-            INSERT INTO storeOfferings (productId, storeId, price, basePrice, offerDetails)
-            VALUES (%s, %s, %s, %s, %s)
-        """
-        cursor.executemany(sql, offerings_to_insert)
-        inserted_count = cursor.rowcount
-        
-        # Commit transaction
-        conn.commit()
+
+        # Count existing rows for reporting
+        try:
+            cursor.execute("SELECT COUNT(*) AS cnt FROM storeOfferings")
+            row = cursor.fetchone() or {}
+            deleted_count = int(row.get('cnt', 0))
+        except Exception:
+            deleted_count = 0
+
+        # If nothing to insert, skip swap
+        if not offerings_to_insert:
+            inserted_count = 0
+            conn.commit()
+        else:
+            ts = int(time.time() * 1000)
+            swap_table = f"storeOfferings_swap_{ts}"
+            old_table_backup = f"storeOfferings_old_{ts}"
+
+            try:
+                # Create swap table with same structure
+                cursor.execute(f"CREATE TABLE {swap_table} LIKE storeOfferings")
+
+                insert_sql = f"INSERT INTO {swap_table} (productId, storeId, price, basePrice, offerDetails) VALUES (%s, %s, %s, %s, %s)"
+                cursor.executemany(insert_sql, offerings_to_insert)
+                inserted_count = cursor.rowcount
+
+                # Atomically rename tables: make new table the live one
+                # RENAME is atomic in MySQL
+                cursor.execute(f"RENAME TABLE storeOfferings TO {old_table_backup}, {swap_table} TO storeOfferings")
+
+                # Drop old backup table
+                cursor.execute(f"DROP TABLE IF EXISTS {old_table_backup}")
+
+                conn.commit()
+            except Exception as e:
+                # Attempt cleanup of swap table and rollback
+                try:
+                    cursor.execute(f"DROP TABLE IF EXISTS {swap_table}")
+                except Exception:
+                    pass
+                conn.rollback()
+                logger.error(f"Failed to swap storeOfferings tables: {e}")
+                raise
         
         result = {
             'records_deleted': deleted_count,
@@ -637,7 +724,7 @@ def send_success_notification(file_key: str, result: Dict[str, Any]):
   • New Products: {result.get('database_operations', {}).get('new_products', 0)}
   • New Stores: {result.get('database_operations', {}).get('new_stores', 0)}
 
-🕐 Completion Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+🕐 Completion Time: {datetime.now(SYDNEY_TZ).strftime('%Y-%m-%d %H:%M:%S %Z')}
         """
         
         sns_client.publish(
@@ -662,7 +749,7 @@ def send_error_notification(file_key: str, error_message: str):
 
 📄 Failed File: {file_key}
 🚨 Error: {error_message}
-🕐 Failure Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+🕐 Failure Time: {datetime.now(SYDNEY_TZ).strftime('%Y-%m-%d %H:%M:%S %Z')}
 
 💡 Resolution Steps:
 1. Check file format is correct
@@ -767,13 +854,30 @@ def log_etl_message(job_id: str, level: str, message: str):
         cursor.execute("""
             INSERT INTO etlJobLogs (jobId, timestamp, stage, status, message)
             VALUES (%s, %s, %s, %s, %s)
-        """, (job_id, datetime.utcnow(), stage, status, message))
+        """, (job_id, datetime.now(SYDNEY_TZ), stage, status, message))
         
         conn.commit()
         conn.close()
         
     except Exception as e:
         logger.error(f"Failed to log ETL message: {str(e)}")
+
+
+def has_successful_job(source_identifier: str) -> bool:
+    """Return True if an etlJobs record exists with overallStatus='success' for the source"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) AS cnt FROM etlJobs WHERE sourceIdentifier = %s AND overallStatus = 'success'", (source_identifier,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return False
+        # row is a dict because of DictCursor
+        return int(row.get('cnt', 0)) > 0
+    except Exception as e:
+        logger.error(f"Failed to check existing successful job for {source_identifier}: {e}")
+        return False
 
 def get_db_connection():
     """

@@ -35,8 +35,9 @@ sns_client = boto3.client('sns')
 # Environment variables
 ETL_PROCESSOR_LAMBDA_ARN = os.environ.get('ETL_PROCESSOR_LAMBDA_ARN')
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
+# Only process CSV files via the S3 trigger. PDFs will be ignored by the trigger.
 ALLOWED_FILE_PATTERNS = ['week_special', 'discount', 'pamphlet']
-ALLOWED_EXTENSIONS = ['.pdf', '.csv']
+ALLOWED_EXTENSIONS = ['.csv']  # intentionally exclude .pdf
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -134,9 +135,9 @@ def should_process_file(file_info: Dict[str, Any]) -> bool:
     key = file_info['key'].lower()
     extension = file_info['extension']
     
-    # Check file extension
+    # Check file extension (only CSV allowed now)
     if extension not in ALLOWED_EXTENSIONS:
-        logger.info(f"File extension {extension} not in allowed list: {ALLOWED_EXTENSIONS}")
+        logger.info(f"File extension {extension} not allowed (only CSV is processed by trigger): {ALLOWED_EXTENSIONS}")
         return False
     
     # Check filename pattern
