@@ -17,7 +17,7 @@ router = APIRouter()
 #Note: Openai setting to access the key in the .env outside the backend
 #openapi_key = os.getenv("OPENAI_API_KEY")  
 try:
-    mopenai_key = getattr(settings, 'OPENAI_API_KEY', None)
+    openai_key = getattr(settings, 'OPENAI_API_KEY', None)
     if openai_key:
         openai_key = openai_key.get_secret_value()
     else:
